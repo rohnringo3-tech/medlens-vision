@@ -1,0 +1,2026 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#f7f9fe">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" crossorigin="anonymous">
+<title>MedLens Vision — It sees, counts and explains your medicine</title>
+<style>
+  :root {
+    color-scheme: light;
+    --bg: #f7f9fe;
+    --white: #ffffff;
+    --card: #ffffff;
+    --ink: #0b1b3a;
+    --muted: #51617f;
+    --blue: #1e5eff;
+    --blue-deep: #0a3bd6;
+    --sky: #38bdf8;
+    --line: #e2e9f8;
+    --tint: #eef3fd;
+    --blue-dim: rgba(30,94,255,.08);
+    --danger: #d92d20;
+    --danger-text: #b42318;
+    --danger-dim: #fdf0ef;
+    --danger-line: #f4c6c2;
+    --amber: #b54708;
+    --amber-text: #b54708;
+    --amber-dim: #fdf6ec;
+    --amber-line: #f2dcb8;
+    --ok: #0e9f6e;
+    --ok-text: #067a53;
+    --ok-dim: #edf9f4;
+    --ok-line: #bfe8d8;
+    --sky-deep: #0284c7;
+    --radius: 18px;
+    --shadow: 0 10px 40px rgba(11, 27, 58, 0.08);
+    --shadow-lg: 0 24px 70px rgba(11, 27, 58, 0.12);
+    --head: "Space Grotesk", "Segoe UI", sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+    min-height: 100vh;
+    min-height: 100dvh;
+    line-height: 1.6;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* keyboard focus — branded, visible, only when navigating by key */
+  :is(button, a, input, select, [tabindex]):focus-visible {
+    outline: 2px solid var(--blue);
+    outline-offset: 2px;
+  }
+
+  .grad {
+    background: linear-gradient(92deg, var(--blue) 10%, var(--sky-deep) 90%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  /* ---------- ambient background ---------- */
+  .bg-decor { position: fixed; inset: 0; z-index: -1; pointer-events: none; overflow: hidden; }
+  .bg-decor .orb { position: absolute; border-radius: 50%; filter: blur(80px); }
+  .bg-decor .orb.a {
+    width: 520px; height: 520px; top: -220px; left: 50%; transform: translateX(-50%);
+    background: radial-gradient(circle, rgba(30,94,255,.14), transparent 65%);
+  }
+  .bg-decor .orb.b {
+    width: 440px; height: 440px; bottom: -230px; right: -150px;
+    background: radial-gradient(circle, rgba(56,189,248,.16), transparent 65%);
+  }
+  .bg-decor .orb.c {
+    width: 340px; height: 340px; top: 40%; left: -180px;
+    background: radial-gradient(circle, rgba(30,94,255,.08), transparent 65%);
+  }
+  .bg-decor::after {
+    content: ""; position: absolute; inset: 0;
+    background:
+      linear-gradient(rgba(11,27,58,.028) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(11,27,58,.028) 1px, transparent 1px);
+    background-size: 44px 44px;
+    mask-image: radial-gradient(ellipse 90% 60% at 50% 0%, #000 25%, transparent 75%);
+  }
+
+  .shell {
+    max-width: 640px; margin: 0 auto;
+    padding: 0 max(20px, env(safe-area-inset-left)) 96px max(20px, env(safe-area-inset-right));
+  }
+
+  /* ---------- header ---------- */
+  header {
+    position: sticky; top: 0; z-index: 40;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: calc(14px + env(safe-area-inset-top)) 0 12px;
+    background: rgba(247,249,254,.82);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+  header::after {
+    content: ""; position: absolute; left: -20px; right: -20px; bottom: 0; height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(30,94,255,.3), transparent);
+  }
+  .wordmark { display: flex; align-items: center; gap: 10px; user-select: none; cursor: pointer; background: none; border: 0; color: var(--ink); font-family: inherit; padding: 4px; border-radius: 10px; }
+  .wordmark svg { display: block; filter: drop-shadow(0 4px 10px rgba(30,94,255,.3)); }
+  .wordmark .name { font-family: var(--head); font-size: 20px; font-weight: 700; letter-spacing: -.01em; }
+  .wordmark .name b { color: var(--blue); font-weight: 700; }
+  .header-actions { display: flex; gap: 8px; }
+  .icon-btn {
+    background: var(--white); border: 1px solid var(--line); color: var(--muted);
+    width: 40px; height: 40px; border-radius: 12px; cursor: pointer;
+    display: grid; place-items: center; transition: color .15s, border-color .15s, box-shadow .15s, transform .12s;
+    position: relative;
+    box-shadow: 0 2px 10px rgba(11,27,58,.05);
+  }
+  .icon-btn:hover { color: var(--blue); border-color: rgba(30,94,255,.4); box-shadow: 0 4px 16px rgba(30,94,255,.15); transform: translateY(-1px); }
+  .icon-btn.attention { color: var(--blue); border-color: rgba(30,94,255,.5); box-shadow: 0 0 0 4px var(--blue-dim); }
+  .icon-btn .count {
+    position: absolute; top: -5px; right: -5px; min-width: 17px; height: 17px;
+    background: linear-gradient(135deg, var(--blue), var(--blue-deep)); color: #fff; border-radius: 999px;
+    font-size: 10.5px; font-weight: 700; display: grid; place-items: center; padding: 0 4px;
+    box-shadow: 0 3px 10px rgba(30,94,255,.4);
+  }
+
+  /* ---------- view transitions ---------- */
+  @keyframes viewIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+  section:not(.hidden) { animation: viewIn .38s cubic-bezier(.22,.8,.36,1); }
+
+  /* ---------- hero / scan ---------- */
+  .hero { padding: 36px 0 6px; text-align: center; }
+  .hero h1 { text-wrap: balance; }
+  .hero p.sub { text-wrap: pretty; }
+  .eyebrow {
+    display: inline-flex; align-items: center; gap: 10px;
+    font-family: var(--head);
+    font-size: 11px; font-weight: 600; letter-spacing: .22em; color: var(--blue);
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+  .eyebrow::before, .eyebrow::after {
+    content: ""; width: 26px; height: 1px; background: var(--blue); opacity: .6;
+  }
+  .hero h1 {
+    font-family: var(--head);
+    font-size: clamp(34px, 7.4vw, 48px); font-weight: 700; letter-spacing: -.02em; line-height: 1.1;
+    color: var(--ink);
+  }
+  .hero h1 span {
+    background: linear-gradient(92deg, var(--blue) 10%, var(--sky-deep) 90%);
+    -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .hero p.sub { color: var(--muted); margin-top: 14px; font-size: 15.5px; max-width: 46ch; margin-left: auto; margin-right: auto; }
+
+  .scanzone {
+    margin-top: 28px;
+    position: relative;
+    border: 1px solid var(--line);
+    background: var(--white);
+    border-radius: 26px;
+    padding: 42px 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color .2s, box-shadow .2s, transform .12s;
+    box-shadow: var(--shadow);
+    width: 100%;
+    font-family: inherit;
+    color: var(--ink);
+    overflow: hidden;
+  }
+  .scanzone::after {
+    content: ""; position: absolute; top: 0; left: 24px; right: 24px; height: 3px;
+    border-radius: 0 0 6px 6px;
+    background: linear-gradient(90deg, var(--blue), var(--sky));
+    opacity: .9;
+  }
+  .scanzone::before {
+    content: ""; position: absolute; inset: 10px; border-radius: 19px;
+    border: 1.5px dashed rgba(30,94,255,.3); pointer-events: none;
+    transition: border-color .2s;
+  }
+  .scanzone:hover, .scanzone.dragover {
+    border-color: rgba(30,94,255,.45);
+    box-shadow: var(--shadow-lg), 0 0 0 4px var(--blue-dim);
+    transform: translateY(-2px);
+  }
+  .scanzone:hover::before, .scanzone.dragover::before { border-color: rgba(30,94,255,.55); }
+  @keyframes ringPulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(30,94,255,.25); }
+    55% { box-shadow: 0 0 0 18px rgba(30,94,255,0); }
+  }
+  .scanzone .ring {
+    width: 82px; height: 82px; margin: 0 auto 16px; border-radius: 24px;
+    background: linear-gradient(135deg, var(--blue), var(--sky));
+    display: grid; place-items: center; color: #fff;
+    animation: ringPulse 2.6s ease-out infinite;
+    box-shadow: 0 12px 30px rgba(30,94,255,.35);
+  }
+  .scanzone .zl1 { font-family: var(--head); font-size: 20px; font-weight: 700; letter-spacing: -.01em; }
+  .scanzone .zl2 { color: var(--muted); font-size: 13.5px; margin-top: 5px; }
+  .btn-row { display: flex; gap: 10px; margin-top: 20px; justify-content: center; flex-wrap: wrap; }
+  .btn {
+    border: 0; cursor: pointer; border-radius: 999px; padding: 13px 26px;
+    font-size: 15px; font-weight: 600; font-family: var(--head);
+    transition: filter .15s, transform .12s, box-shadow .15s, border-color .15s, color .15s;
+  }
+  .btn:active, .btn-primary:hover:active, .btn-ghost:hover:active { transform: translateY(1px); }
+  .btn-primary {
+    background: linear-gradient(135deg, var(--blue), var(--blue-deep));
+    color: #fff;
+    box-shadow: 0 10px 26px rgba(30,94,255,.35);
+  }
+  .btn-primary:hover:not(:active) { filter: brightness(1.08); transform: translateY(-1px); box-shadow: 0 14px 34px rgba(30,94,255,.42); }
+  .btn-primary[disabled] { filter: saturate(.2) opacity(.6); cursor: default; transform: none; box-shadow: none; }
+  .btn-ghost { background: var(--white); color: var(--ink); border: 1px solid var(--line); box-shadow: 0 2px 10px rgba(11,27,58,.05); }
+  .btn-ghost:hover:not(:active) { border-color: rgba(30,94,255,.45); color: var(--blue); transform: translateY(-1px); }
+  .btn-ghost[disabled] { color: var(--ok-text); border-color: var(--ok-line); background: var(--ok-dim); cursor: default; transform: none; }
+  .keyhint { margin-top: 14px; font-size: 12.5px; color: var(--muted); text-align: center; }
+  .linklike { background: none; border: 0; padding: 0; color: var(--blue); cursor: pointer; font: inherit; font-weight: 600; }
+
+  /* ---------- steps strip ---------- */
+  .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 36px; }
+  .step {
+    background: var(--white);
+    border: 1px solid var(--line); border-radius: var(--radius);
+    padding: 18px 16px; text-align: left; position: relative; overflow: hidden;
+    transition: border-color .2s, transform .15s, box-shadow .2s;
+    box-shadow: 0 4px 18px rgba(11,27,58,.05);
+  }
+  .step::before {
+    content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    background: linear-gradient(90deg, var(--blue), var(--sky));
+    opacity: 0; transition: opacity .2s;
+  }
+  .step:hover { border-color: rgba(30,94,255,.35); transform: translateY(-3px); box-shadow: var(--shadow); }
+  .step:hover::before { opacity: 1; }
+  .step .num { font-family: var(--head); font-size: 11px; letter-spacing: .18em; color: var(--blue); font-weight: 700; }
+  .step .t { font-family: var(--head); font-size: 14px; font-weight: 600; margin-top: 6px; }
+  .step .d { font-size: 12px; color: var(--muted); margin-top: 3px; }
+
+  /* ---------- in-app camera ---------- */
+  .camera { padding-top: 8px; }
+  .cam-wrap { position: relative; border-radius: 22px; overflow: hidden; background: var(--ink); box-shadow: var(--shadow-lg); }
+  .cam-wrap video { width: 100%; aspect-ratio: 3/4; max-height: min(64vh, 560px); object-fit: cover; display: block; margin: 0 auto; }
+  .cam-frame {
+    position: absolute; inset: 7%; border-radius: 16px; pointer-events: none;
+    border: 2px dashed rgba(255,255,255,.6);
+    box-shadow: 0 0 0 200vmax rgba(11,27,58,.25);
+  }
+  .cam-controls { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; margin-top: 16px; }
+  .cam-controls .back { justify-self: start; padding: 12px 16px 12px 0; }
+  .shutter {
+    width: 68px; height: 68px; border-radius: 50%; border: 4px solid var(--white); cursor: pointer;
+    background: linear-gradient(135deg, var(--blue), var(--blue-deep));
+    box-shadow: 0 10px 30px rgba(30,94,255,.4), 0 0 0 1px rgba(11,27,58,.14), 0 0 0 6px rgba(30,94,255,.15);
+    justify-self: center; transition: transform .1s;
+  }
+  .shutter:active { transform: scale(.92); }
+  .cam-hint { justify-self: end; font-size: 12px; color: var(--muted); max-width: 110px; text-align: right; }
+
+  /* ---------- analyzing ---------- */
+  .analyzing { text-align: center; padding: 60px 0 30px; }
+  .preview-wrap { position: relative; width: min(300px, 80%); margin: 0 auto; }
+  .preview-wrap img {
+    width: 100%; border-radius: 20px; border: 1px solid var(--line);
+    display: block;
+    box-shadow: var(--shadow-lg);
+  }
+  .scanline {
+    position: absolute; left: 6%; right: 6%; height: 3px; border-radius: 3px;
+    background: linear-gradient(90deg, transparent, var(--blue), var(--sky), transparent);
+    animation: sweep 1.6s ease-in-out infinite; top: 12%;
+    box-shadow: 0 0 24px rgba(30,94,255,.55);
+  }
+  @keyframes sweep { 0%,100% { top: 10%; } 50% { top: 88%; } }
+  .analyzing .stage { margin-top: 22px; font-size: 15px; color: var(--muted); min-height: 24px; }
+  .analyzing .stage::after {
+    content: "...";
+    display: inline-block; width: 0; overflow: hidden; vertical-align: bottom;
+    animation: dots 1.2s steps(4, end) infinite;
+  }
+  @keyframes dots { to { width: 1.3em; } }
+  .analyzing .cancel-row { margin-top: 18px; }
+
+  /* ---------- result ---------- */
+  .result { padding-top: 8px; }
+  .result-top { display: flex; align-items: center; gap: 10px; margin: 6px 0 14px; }
+  .back { font-size: 13.5px; color: var(--muted); cursor: pointer; background: none; border: none; font-family: inherit; font-weight: 500; display: inline-flex; align-items: center; gap: 6px; padding: 6px 0; transition: color .15s; }
+  .back:hover { color: var(--blue); }
+
+  .med-card {
+    position: relative;
+    background: var(--white);
+    border: 1px solid var(--line); border-radius: 22px; padding: 24px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+  .med-card::before {
+    content: ""; position: absolute; top: 0; left: 0; right: 0; height: 4px;
+    background: linear-gradient(90deg, var(--blue), var(--sky));
+  }
+  .med-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: 12px; }
+  .med-name { font-family: var(--head); font-size: 27px; font-weight: 700; letter-spacing: -.02em; line-height: 1.12; }
+  .med-generic { color: var(--muted); font-size: 14px; margin-top: 4px; }
+  .badge {
+    font-family: var(--head);
+    font-size: 11px; font-weight: 700; letter-spacing: .07em; white-space: nowrap;
+    padding: 6px 12px; border-radius: 999px; flex-shrink: 0;
+  }
+  .badge.ok { background: var(--ok-dim); color: var(--ok-text); border: 1px solid var(--ok-line); }
+  .badge.ai { background: var(--blue-dim); color: var(--blue-deep); border: 1px solid rgba(30,94,255,.3); }
+  .badge.rx { background: var(--amber-dim); color: var(--amber-text); border: 1px solid var(--amber-line); }
+  .chips { display: flex; gap: 7px; flex-wrap: wrap; margin-top: 13px; }
+  .chip {
+    font-size: 12px; font-weight: 500; color: var(--muted); background: var(--tint);
+    border: 1px solid var(--line); padding: 5px 12px; border-radius: 999px;
+  }
+
+  .conf-banner {
+    margin-top: 14px; border-radius: 14px; padding: 13px 15px;
+    border: 1px solid var(--amber-line); background: var(--amber-dim);
+    font-size: 13.5px;
+  }
+  .conf-banner b { color: var(--amber-text); }
+
+  .section {
+    margin-top: 14px; background: var(--white);
+    border: 1px solid var(--line); border-radius: var(--radius); padding: 18px 18px 16px;
+    box-shadow: 0 4px 18px rgba(11,27,58,.04);
+  }
+  .section h3 {
+    font-family: var(--head);
+    font-size: 11.5px; letter-spacing: .16em; font-weight: 700; color: var(--blue);
+    text-transform: uppercase; display: flex; align-items: center; gap: 10px;
+  }
+  .section h3::after { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, rgba(30,94,255,.3), transparent); }
+  .section .body { margin-top: 10px; font-size: 15px; color: var(--ink); }
+  .section ul { margin: 10px 0 0 0; list-style: none; }
+  .section li { padding: 8px 0 8px 22px; position: relative; font-size: 14.5px; border-top: 1px solid var(--line); }
+  .section li:first-child { border-top: 0; padding-top: 2px; }
+  .section li::before {
+    content: ""; position: absolute; left: 2px; top: 16px; width: 7px; height: 7px;
+    border-radius: 50%; background: linear-gradient(135deg, var(--blue), var(--sky));
+  }
+  .section li:first-child::before { top: 10px; }
+  .section.warn { border-color: var(--danger-line); background: linear-gradient(180deg, #fffbfb, var(--white)); }
+  .section.warn h3 { color: var(--danger-text); }
+  .section.warn h3::after { background: linear-gradient(90deg, rgba(217,45,32,.3), transparent); }
+  .section.warn li::before { background: var(--danger); }
+
+  /* interaction check states */
+  .ix-clear {
+    display: flex; align-items: center; gap: 10px; margin-top: 12px;
+    color: var(--ok-text); font-size: 14.5px; font-weight: 600;
+  }
+  .ix-clear .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 0 4px var(--ok-dim); }
+  .ix-note { color: var(--muted); font-size: 12.5px; margin-top: 9px; }
+  .ix-item {
+    margin-top: 11px; border-radius: 14px; padding: 13px 15px;
+    border: 1px solid var(--danger-line); background: var(--danger-dim);
+  }
+  .ix-item.caution { border-color: var(--amber-line); background: var(--amber-dim); }
+  .ix-item .with { font-family: var(--head); font-weight: 700; font-size: 14px; }
+  .ix-item.avoid .with { color: var(--danger-text); }
+  .ix-item.caution .with { color: var(--amber-text); }
+  .ix-item .note { font-size: 13.5px; margin-top: 5px; color: var(--ink); }
+  .ix-sev {
+    font-family: var(--head);
+    font-size: 10.5px; font-weight: 700; letter-spacing: .09em; margin-left: 8px;
+    padding: 2px 9px; border-radius: 999px; vertical-align: 2px;
+  }
+  .ix-item.avoid .ix-sev { background: rgba(217,45,32,.12); color: var(--danger-text); }
+  .ix-item.caution .ix-sev { background: rgba(181,71,8,.12); color: var(--amber-text); }
+
+  .demo-callout {
+    margin-top: 12px; border-radius: 14px; padding: 14px 15px;
+    border: 1px solid rgba(30,94,255,.3); background: var(--blue-dim);
+    font-size: 13.5px;
+  }
+  .demo-callout b { color: var(--blue-deep); }
+  .demo-callout .btn { margin-top: 10px; padding: 10px 18px; font-size: 13.5px; }
+
+  .sources { margin-top: 14px; }
+  .sources .chip a { color: inherit; text-decoration: none; }
+  .sources .chip.fda { color: var(--ok-text); border-color: var(--ok-line); background: var(--ok-dim); }
+  .chip.vis { color: var(--blue-deep); border-color: #c9d9fb; background: var(--blue-dim); }
+  .chip.vis.ok { color: var(--ok-text); border-color: var(--ok-line); background: var(--ok-dim); }
+  .chip.vis.used { color: var(--danger-text); border-color: var(--danger-line); background: var(--danger-dim); }
+  .vis-img { width: 100%; max-height: 340px; object-fit: contain; border-radius: 12px; border: 1px solid var(--line); background: #0b1b3a; margin-bottom: 10px; }
+
+  .result-actions { display: flex; gap: 10px; margin-top: 18px; }
+  .result-actions .btn { flex: 1; }
+
+  .disclaimer {
+    margin-top: 16px; font-size: 12.5px; color: var(--muted);
+    background: var(--tint); border: 1px solid var(--line); border-radius: 14px;
+    padding: 13px 15px; line-height: 1.55;
+  }
+  .disclaimer b { color: var(--ink); }
+
+  /* ---------- my meds ---------- */
+  .drawer-title { font-family: var(--head); font-size: 22px; font-weight: 700; letter-spacing: -.01em; margin: 8px 0 4px; }
+  .drawer-sub { color: var(--muted); font-size: 13px; margin-bottom: 4px; }
+  .drawer-note { color: var(--muted); font-size: 12px; margin-bottom: 14px; }
+  .medlist { display: flex; flex-direction: column; gap: 10px; }
+  .medlist .item {
+    background: var(--white);
+    border: 1px solid var(--line); border-radius: 16px;
+    padding: 14px 16px; transition: border-color .2s, box-shadow .2s;
+    box-shadow: 0 4px 18px rgba(11,27,58,.04);
+  }
+  .medlist .item:hover { border-color: rgba(30,94,255,.3); box-shadow: var(--shadow); }
+  .medlist .row1 { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+  .medlist .n { font-family: var(--head); font-weight: 600; font-size: 15px; cursor: pointer; transition: color .15s; background: none; border: 0; color: var(--ink); text-align: left; padding: 0; }
+  .medlist .n:hover { color: var(--blue); }
+  .medlist .g { color: var(--muted); font-size: 12.5px; }
+  .medlist .rm {
+    background: none; border: none; color: var(--muted); cursor: pointer; font-size: 13px; font-family: inherit;
+    padding: 10px 12px; margin: -6px -8px -6px 0; min-height: 44px; border-radius: 10px; transition: color .15s, background .15s;
+  }
+  .medlist .rm:hover { color: var(--danger-text); background: var(--danger-dim); }
+  .medlist .row2 {
+    display: flex; align-items: center; gap: 10px; margin-top: 10px; padding-top: 10px;
+    border-top: 1px solid var(--line); flex-wrap: wrap;
+  }
+  .medlist .row2 label { font-size: 12.5px; color: var(--muted); }
+  .medlist input[type="time"] {
+    background: var(--tint); border: 1px solid var(--line); color: var(--ink);
+    border-radius: 10px; padding: 6px 9px; font-family: inherit; font-size: 13px;
+  }
+  .medlist input[type="time"]:focus-visible, .medlist .dose-in:focus-visible {
+    outline: none; border-color: rgba(30,94,255,.55); box-shadow: 0 0 0 3px var(--blue-dim);
+  }
+  .medlist input::placeholder { color: var(--muted); opacity: 1; }
+  .medlist .dose-in {
+    background: var(--tint); border: 1px solid var(--line); color: var(--ink);
+    border-radius: 10px; padding: 6px 10px; font-family: inherit; font-size: 13px; width: 130px;
+  }
+  .medlist .dose-hint { font-size: 11.5px; color: var(--muted); }
+  .slots { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+  .slot {
+    display: flex; align-items: center; gap: 4px;
+    border: 1px solid var(--line); background: var(--tint); border-radius: 999px; padding: 3px 5px 3px 3px;
+    transition: border-color .15s, background .15s;
+  }
+  .slot .slot-t {
+    font-size: 12px; font-weight: 600; font-family: var(--head); border: 0; cursor: pointer;
+    border-radius: 999px; padding: 10px 14px; background: transparent; color: var(--muted);
+    transition: color .15s;
+  }
+  .slot.on { border-color: rgba(30,94,255,.4); background: var(--blue-dim); }
+  .slot.on .slot-t { color: var(--blue-deep); }
+  .slot input[type="time"] {
+    display: none; background: var(--white); border: 1px solid var(--line); border-radius: 10px;
+    padding: 3px 6px; font-size: 12px; font-family: inherit; color: var(--ink);
+  }
+  .slot.on input[type="time"] { display: inline-block; }
+  .slots-label { font-size: 12.5px; color: var(--muted); margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); }
+  .slots-hint { font-size: 11.5px; color: var(--muted); margin-top: 8px; }
+  .empty { color: var(--muted); font-size: 14px; text-align: center; padding: 30px 0 8px; }
+  .empty-actions { display: flex; gap: 10px; justify-content: center; margin: 14px 0 20px; flex-wrap: wrap; }
+
+  /* ---------- modal ---------- */
+  .modal-veil {
+    position: fixed; inset: 0; background: rgba(11,27,58,.35); backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    display: none; align-items: flex-end; justify-content: center; z-index: 50; padding: 16px;
+  }
+  .modal-veil.open { display: flex; }
+  @keyframes modalIn { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+  .modal {
+    background: var(--white);
+    border: 1px solid var(--line); border-radius: 22px;
+    width: 100%; max-width: 480px; padding: 26px; margin-bottom: 4vh;
+    max-height: calc(100dvh - 32px); overflow-y: auto;
+    box-shadow: var(--shadow-lg);
+    animation: modalIn .3s cubic-bezier(.22,.8,.36,1);
+  }
+  @media (min-width: 640px) {
+    .modal-veil { align-items: center; }
+    .modal { margin-bottom: 0; }
+  }
+  .modal h2 { font-family: var(--head); font-size: 21px; font-weight: 700; letter-spacing: -.01em; }
+  .modal p { color: var(--muted); font-size: 13.5px; margin-top: 8px; }
+  .modal p a { color: var(--blue); text-decoration: none; font-weight: 600; }
+  .modal label.f { display: block; font-family: var(--head); font-size: 11.5px; letter-spacing: .14em; text-transform: uppercase; font-weight: 700; color: var(--blue); margin-top: 20px; }
+  .modal input, .modal select {
+    width: 100%; margin-top: 8px; background: var(--tint); border: 1px solid var(--line);
+    border-radius: 12px; padding: 13px 14px; color: var(--ink); font-size: 14px; font-family: inherit;
+  }
+  .modal input::placeholder { color: var(--muted); opacity: 1; }
+  .modal select {
+    appearance: none; -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1.5 6 6.5 11 1.5' stroke='%231e5eff' stroke-width='1.6' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 14px center;
+    padding-right: 40px;
+  }
+  .modal input:focus, .modal select:focus { outline: none; }
+  .modal input:focus-visible, .modal select:focus-visible {
+    outline: none; border-color: rgba(30,94,255,.55); box-shadow: 0 0 0 3px var(--blue-dim);
+  }
+  .modal .btn-row { justify-content: flex-end; margin-top: 20px; }
+  .modal .status { margin-top: 10px; font-size: 12.5px; }
+  .modal .status.ok { color: var(--ok-text); }
+
+  /* ---------- toast ---------- */
+  .toast {
+    position: fixed; left: 50%; bottom: calc(26px + env(safe-area-inset-bottom));
+    transform: translateX(-50%) translateY(20px);
+    background: var(--ink); color: #fff;
+    border: 1px solid rgba(30,94,255,.4);
+    padding: 12px 22px; border-radius: 999px; font-size: 14px; opacity: 0;
+    transition: opacity .25s, transform .25s; pointer-events: none; z-index: 60;
+    max-width: 90vw; text-align: center;
+    box-shadow: 0 16px 44px rgba(11,27,58,.35);
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  .hidden { display: none !important; }
+  @media (max-width: 560px) {
+    .steps { grid-template-columns: 1fr; gap: 8px; }
+    .step { display: flex; align-items: baseline; gap: 12px; padding: 13px 16px; }
+  }
+  @media (max-width: 400px) {
+    .badge { font-size: 10px; padding: 5px 9px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: .01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: .01ms !important;
+    }
+    html { scroll-behavior: auto; }
+  }
+</style>
+</head>
+<body>
+<div class="bg-decor" aria-hidden="true"><i class="orb a"></i><i class="orb b"></i><i class="orb c"></i></div>
+<div class="shell">
+
+  <header>
+    <button class="wordmark" id="homeLink" aria-label="MedLens home">
+      <svg width="28" height="28" viewBox="0 0 28 28" fill="none" aria-hidden="true">
+        <rect x="1" y="1" width="26" height="26" rx="8" fill="url(#lg)"/>
+        <circle cx="13" cy="12.5" r="5.4" stroke="#ffffff" stroke-width="1.8"/>
+        <line x1="17.2" y1="16.7" x2="21" y2="20.5" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round"/>
+        <line x1="13" y1="10.2" x2="13" y2="14.8" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round"/>
+        <line x1="10.7" y1="12.5" x2="15.3" y2="12.5" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round"/>
+        <defs><linearGradient id="lg" x1="1" y1="1" x2="27" y2="27"><stop stop-color="#1e5eff"/><stop offset="1" stop-color="#38bdf8"/></linearGradient></defs>
+      </svg>
+      <div class="name">Med<b>Lens</b> Vision</div>
+    </button>
+    <div class="header-actions">
+      <button class="icon-btn" id="btnMeds" title="My medicines" aria-label="My medicines">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="2.2" y="6.5" width="13.6" height="9" rx="2.5" stroke="currentColor" stroke-width="1.5"/><path d="M6 6.5V4.8a3 3 0 0 1 6 0v1.7" stroke="currentColor" stroke-width="1.5"/><line x1="9" y1="9.4" x2="9" y2="13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><line x1="7.2" y1="11.2" x2="10.8" y2="11.2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        <span class="count hidden" id="medCount"></span>
+      </button>
+      <button class="icon-btn" id="btnSettings" title="Settings" aria-label="Settings">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="2.4" stroke="currentColor" stroke-width="1.5"/><path d="M9 1.8v2M9 14.2v2M1.8 9h2M14.2 9h2M3.9 3.9l1.4 1.4M12.7 12.7l1.4 1.4M14.1 3.9l-1.4 1.4M5.3 12.7l-1.4 1.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- SCAN SCREEN -->
+  <section id="viewScan">
+    <div class="hero">
+      <div class="eyebrow">AI for human health</div>
+      <h1>Understand any medicine <span>in seconds</span></h1>
+      <p class="sub">Photograph a medicine box or pill sheet. Get a plain-language explanation, cross-checked against official drug data.</p>
+    </div>
+
+    <div class="scanzone" id="scanzone">
+      <div class="ring">
+        <svg width="32" height="32" viewBox="0 0 30 30" fill="none"><path d="M4 9.5V7a3 3 0 0 1 3-3h2.5M20.5 4H23a3 3 0 0 1 3 3v2.5M26 20.5V23a3 3 0 0 1-3 3h-2.5M9.5 26H7a3 3 0 0 1-3-3v-2.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="15" cy="15" r="4.4" stroke="currentColor" stroke-width="1.8"/></svg>
+      </div>
+      <div class="zl1">Scan a medicine</div>
+      <div class="zl2" id="zoneHint">Tap to open your camera, or drop a photo here</div>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="btnScan">Open camera</button>
+        <button class="btn btn-ghost" id="btnGallery">Choose photo</button>
+        <button class="btn btn-ghost" id="btnSample">Try a sample — Advil</button>
+      </div>
+    </div>
+    <div class="keyhint" id="keyhint"></div>
+
+    <div class="steps">
+      <div class="step"><div class="num">01</div><div><div class="t">Snap the label</div><div class="d">Box, bottle or pill sheet</div></div></div>
+      <div class="step"><div class="num">02</div><div><div class="t">AI reads it</div><div class="d">Name, strength and purpose</div></div></div>
+      <div class="step"><div class="num">03</div><div><div class="t">Facts, checked</div><div class="d">Name matched in openFDA's label database</div></div></div>
+    </div>
+
+    <input type="file" id="fileInput" accept="image/*" capture="environment" class="hidden">
+    <input type="file" id="galleryInput" accept="image/*" class="hidden">
+  </section>
+
+  <!-- IN-APP CAMERA SCREEN -->
+  <section id="viewCamera" class="hidden">
+    <div class="camera">
+      <div class="cam-wrap">
+        <video id="camVideo" autoplay playsinline muted></video>
+        <div class="cam-frame" aria-hidden="true"></div>
+      </div>
+      <div class="cam-controls">
+        <button class="back" id="btnCamClose">Cancel</button>
+        <button class="shutter" id="btnShutter" aria-label="Take photo"></button>
+        <span class="cam-hint">Fill the frame with the label</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ANALYZING SCREEN -->
+  <section id="viewAnalyzing" class="hidden">
+    <div class="analyzing">
+      <div class="preview-wrap">
+        <img id="previewImg" alt="Medicine photo being analyzed">
+        <div class="scanline"></div>
+      </div>
+      <div class="stage" id="stageText" role="status" aria-live="polite">Reading the label</div>
+      <div class="cancel-row">
+        <button class="back" id="btnCancelScan">Cancel</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- RESULT SCREEN -->
+  <section id="viewResult" class="hidden">
+    <div class="result">
+      <div class="result-top">
+        <button class="back" id="btnBack">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M8.8 2.5 4.3 7l4.5 4.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Scan another
+        </button>
+      </div>
+      <div id="resultBody"><!-- rendered by JS --></div>
+      <div class="disclaimer">
+        <b>MedLens explains labels — it is not medical advice, and AI can make mistakes.</b> Always check that the name on this card matches your package. Follow your doctor or pharmacist, especially for children, pregnancy, or long-term conditions. If you are under 18, check with an adult before taking any medicine. If someone may have taken too much of a medicine, or you feel seriously unwell, call emergency services or your local poison control line immediately.
+      </div>
+    </div>
+  </section>
+
+  <!-- MY MEDS SCREEN -->
+  <section id="viewMeds" class="hidden">
+    <div class="result-top">
+      <button class="back" id="btnBackMeds">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M8.8 2.5 4.3 7l4.5 4.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Back
+      </button>
+    </div>
+    <div class="drawer-title">My medicines</div>
+    <div class="drawer-sub">Every new scan is checked against this list for dangerous combinations.</div>
+    <div class="drawer-note">Reminders ring only while MedLens is open on your screen. Add it to your home screen to open it in one tap.</div>
+    <div class="medlist" id="medlist"></div>
+  </section>
+
+</div>
+
+<!-- SETTINGS MODAL -->
+<div class="modal-veil" id="settingsVeil">
+  <div class="modal">
+    <h2>Settings</h2>
+
+    <label class="f" for="keyInput">Gemini API key</label>
+    <p style="margin-top:4px">Enables live camera scanning. Get a free key at <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com</a> — sign in with Google, tap "Create API key", and paste it here. Stored only on this device; without it, MedLens runs in demo mode.</p>
+    <input type="password" id="keyInput" placeholder="Gemini API key" autocomplete="off">
+    <div class="status" id="keyStatus"></div>
+
+    <label class="f" for="langSelect">Explanation language</label>
+    <p style="margin-top:4px">Live scans are explained in this language. Samples are English.</p>
+    <select id="langSelect">
+      <option value="English">English</option>
+      <option value="Swahili">Swahili</option>
+      <option value="French">French</option>
+      <option value="Spanish">Spanish</option>
+      <option value="Portuguese">Portuguese</option>
+      <option value="Arabic">Arabic</option>
+      <option value="Hindi">Hindi</option>
+    </select>
+
+    <p id="demoEscape" class="hidden" style="margin-top:18px">Just exploring? The full drug-clash demo needs no key at all.
+      <button class="linklike" id="btnModalDemo">Run the sample demo</button>
+    </p>
+
+    <div class="btn-row">
+      <button class="btn btn-ghost" id="btnCloseSettings">Close</button>
+      <button class="btn btn-primary" id="btnSaveKey">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+"use strict";
+
+/* ================= state & storage ================= */
+const LS_KEY = "medlens.gemini_key";
+const LS_MEDS = "medlens.meds";
+const LS_LANG = "medlens.lang";
+/* Same-origin Gemini proxy (Cloudflare Worker, rate-limited, server-held key) —
+   judges and visitors scan real medicines with ZERO setup. On localhost there is
+   no proxy, so dev falls back to bring-your-own-key mode. */
+/* local dev (localhost, 127.0.0.1, LAN phone tests) has no proxy — BYOK there */
+const IS_LOCAL = ["localhost", "127.0.0.1"].includes(location.hostname)
+  || /^192\.168\.|^10\./.test(location.hostname) || location.protocol === "file:";
+const PROXY_URL = IS_LOCAL ? "" : "/api/gemini";
+const $ = (id) => document.getElementById(id);
+const views = ["viewScan", "viewCamera", "viewAnalyzing", "viewResult", "viewMeds"];
+let scanGen = 0; // generation token: bumping it cancels any in-flight scan's UI writes
+
+function show(view) {
+  views.forEach(v => $(v).classList.toggle("hidden", v !== view));
+  window.scrollTo(0, 0);
+  /* phone back-gesture returns to the scan screen instead of exiting the app */
+  try {
+    if (view !== "viewScan" && (!history.state || history.state.v === "viewScan")) {
+      history.pushState({ v: view }, "");
+    } else if (view !== "viewScan") {
+      history.replaceState({ v: view }, "");
+    }
+  } catch {}
+}
+window.addEventListener("popstate", () => {
+  scanGen++;
+  stopStages();
+  if (typeof closeCamera === "function") closeCamera();
+  views.forEach(v => $(v).classList.toggle("hidden", v !== "viewScan"));
+  window.scrollTo(0, 0);
+});
+function getKey() { return localStorage.getItem(LS_KEY) || ""; }
+function canScanLive() { return !!getKey() || !!PROXY_URL; }
+function getLang() { return localStorage.getItem(LS_LANG) || "English"; }
+function getMeds() {
+  try {
+    const v = JSON.parse(localStorage.getItem(LS_MEDS));
+    return Array.isArray(v) ? v : [];
+  } catch { return []; }
+}
+function setMeds(m) { localStorage.setItem(LS_MEDS, JSON.stringify(m)); refreshMedCount(); }
+function refreshMedCount() {
+  const n = getMeds().length;
+  $("medCount").textContent = n;
+  $("medCount").classList.toggle("hidden", n === 0);
+}
+function toast(msg) {
+  const t = $("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => t.classList.remove("show"), 3200);
+}
+function esc(s) {
+  return String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
+}
+/* normalized identity — Gemini's name strings vary between scans of the same box */
+function norm(s) { return String(s || "").toLowerCase().replace(/[^a-z0-9]+/g, ""); }
+function sameMed(a, b) {
+  if (!a || !b) return false;
+  if (norm(a.name) && norm(a.name) === norm(b.name)) return true;
+  if (a.generic && b.generic && norm(a.generic) === norm(b.generic) &&
+      norm(a.strength || "") === norm(b.strength || "")) return true;
+  return false;
+}
+/* dose schedule — Morning/Midday/Evening/Night slots, editable times */
+const DEFAULT_SLOTS = [["Morning", "08:00"], ["Midday", "13:00"], ["Evening", "18:00"], ["Night", "21:00"]];
+function ensureSchedule(m) {
+  if (!m.schedule) {
+    /* dose starts EMPTY — the app never invents an amount; the user types their own */
+    m.schedule = { dose: "", slots: DEFAULT_SLOTS.map(([label, time]) => ({ label, time, on: false })) };
+    /* migrate the old single daily reminder if one was set, then drop the legacy fields */
+    if (m.remindAt) { m.schedule.slots[0].time = m.remindAt; m.schedule.slots[0].on = !!m.remindOn; }
+    delete m.remindAt;
+    delete m.remindOn;
+  }
+  return m.schedule;
+}
+
+/* AbortSignal.timeout with fallback for older WebViews */
+function timeoutSignal(ms) {
+  try { return AbortSignal.timeout(ms); }
+  catch {
+    const c = new AbortController();
+    setTimeout(() => c.abort(), ms);
+    return c.signal;
+  }
+}
+
+/* ================= demo samples ================= */
+const SAMPLE_ADVIL = {
+  name: "Advil 200 mg",
+  generic: "Ibuprofen",
+  strength: "200 mg",
+  form: "Coated tablets",
+  purpose: "A pain reliever and fever reducer (NSAID). Used for headaches, muscle aches, toothache, backache, period pain, minor arthritis pain, and to bring down fever.",
+  how_to_take: [
+    "Adults and children 12+: 1 tablet every 4 to 6 hours while symptoms last.",
+    "If pain or fever does not respond, 2 tablets may be used.",
+    "Do not exceed 6 tablets in 24 hours unless directed by a doctor.",
+    "Take with food or milk if it upsets your stomach."
+  ],
+  warnings: [
+    "Ibuprofen can raise the risk of heart attack or stroke, especially at higher doses, with longer use, or if you have heart disease.",
+    "Can cause severe stomach bleeding, especially if you are over 60, take blood thinners, or drink 3+ alcoholic drinks a day.",
+    "Do not use if you have ever had an allergic reaction or asthma attack after taking aspirin or any other pain reliever.",
+    "Do not use in the last 3 months of pregnancy unless a doctor specifically tells you to — it can harm the unborn baby. If pregnant (especially after 20 weeks) or breastfeeding, ask a doctor before use.",
+    "Do not take longer than 10 days for pain unless a doctor tells you to."
+  ],
+  interactions: [
+    "Blood thinners (warfarin, aspirin) — higher bleeding risk.",
+    "Blood pressure medicines and diuretics — may work less well.",
+    "Other NSAIDs — do not combine."
+  ],
+  seek_doctor: [
+    "Bloody or black stools, or vomit that looks like coffee grounds.",
+    "Chest pain, trouble breathing, or weakness on one side of the body.",
+    "Severe stomach pain that does not stop.",
+    "Signs of allergy: swelling of the face or throat, hives, wheezing."
+  ],
+  confidence: "high",
+  rx_only: false,
+  demo: true
+};
+const SAMPLE_ASPIRIN = {
+  name: "Aspirin 300 mg",
+  generic: "Acetylsalicylic acid",
+  strength: "300 mg",
+  form: "Tablets",
+  purpose: "A pain reliever, fever reducer and anti-inflammatory. Used for headaches, toothache, period pain and colds. Low doses are also used, on a doctor's advice, to help prevent heart attacks.",
+  how_to_take: [
+    "Adults: 1 to 2 tablets every 4 to 6 hours as needed.",
+    "Do not exceed 12 tablets in 24 hours.",
+    "Take with or after food.",
+    "Not for children under 16 unless a doctor prescribes it."
+  ],
+  warnings: [
+    "Never give to children or teenagers with a fever or viral illness — risk of Reye's syndrome.",
+    "Can irritate the stomach and cause bleeding, especially with alcohol.",
+    "Do not use in the last 3 months of pregnancy — it can harm the baby and cause bleeding at delivery. If pregnant or breastfeeding, ask a doctor before use.",
+    "Ask a doctor first if you have asthma, ulcers, or kidney problems.",
+    "Tell your doctor or dentist you take aspirin before any surgery or dental work — it thins the blood. If you take daily low-dose aspirin for your heart, never stop it on your own; ask your doctor first."
+  ],
+  interactions: [
+    "Blood thinners (warfarin) — serious bleeding risk.",
+    "Other NSAIDs like ibuprofen — more stomach bleeding, and they can blunt aspirin's heart protection.",
+    "Methotrexate — aspirin can raise its levels."
+  ],
+  seek_doctor: [
+    "Ringing in the ears or hearing loss — a sign of too much aspirin.",
+    "Bloody or black stools, or coughing up blood.",
+    "An allergic reaction: swelling, hives, or trouble breathing.",
+    "Any fever in a child or teenager — do not treat it with aspirin."
+  ],
+  confidence: "high",
+  rx_only: false,
+  demo: true
+};
+/* Snapshots of real openFDA responses (incl. official label excerpts) so the
+   keyless demo is instant and works on dead venue wifi. Refreshed 2026-08-15. */
+const FDA_SNAPSHOT = {
+  "Ibuprofen": {
+    matched: true, brand: "Ibuprofen Dye Free", generic: "IBUPROFEN",
+    purpose: "Pain reliever/fever reducer",
+    dosage: "Do not take more than directed; the smallest effective dose should be used. Adults and children 12 years and over: take 1 tablet every 4 to 6 hours while symptoms persist; if pain or fever does not respond to 1 tablet, 2 tablets may be used. Do not exceed 6 tablets in 24 hours.",
+    warnings: "Allergy alert: ibuprofen may cause a severe allergic reaction, especially in people allergic to aspirin. Symptoms may include rash, facial swelling, asthma (wheezing), hives, shock. If an allergic reaction occurs, stop use and seek medical help right away.",
+    setid: "00653b7c-7099-487e-9a01-e89781c21323", cached: true
+  },
+  "Acetylsalicylic acid": {
+    matched: true, brand: "Low Dose Aspirin", generic: "ASPIRIN",
+    purpose: "Pain reliever",
+    dosage: null, /* matched US product is a different strength — don't show its directions */
+    warnings: null,
+    setid: "0058175f-3474-40c3-a046-6cfaec86d84b", cached: true
+  }
+};
+let sampleToggle = 0;
+
+/* ================= built-in interaction knowledge =================
+   Small, conservative table of well-known combinations. Matched on
+   ingredient keywords so it works fully offline / keyless. */
+const IX_PAIRS = [
+  { a: ["ibuprofen", "naproxen", "diclofenac"], b: ["acetylsalicylic", "aspirin"],
+    severity: "caution",
+    note: "Two NSAIDs together raise the risk of stomach bleeding, and ibuprofen can blunt aspirin's heart-protective effect. Do not combine without a doctor's advice." },
+  { a: ["ibuprofen", "naproxen", "diclofenac", "acetylsalicylic", "aspirin"], b: ["warfarin"],
+    severity: "avoid",
+    note: "NSAIDs with warfarin sharply increase bleeding risk. Avoid unless your doctor specifically approved it." },
+  { a: ["ibuprofen", "naproxen", "diclofenac"], b: ["ibuprofen", "naproxen", "diclofenac"],
+    severity: "avoid",
+    note: "These are both NSAIDs. Taking two NSAIDs together multiplies stomach-bleeding and kidney risks with no extra benefit." },
+  { a: ["ibuprofen", "naproxen", "diclofenac"], b: ["lisinopril", "enalapril", "losartan", "hydrochlorothiazide", "furosemide"],
+    severity: "caution",
+    note: "NSAIDs can make blood-pressure medicines work less well and strain the kidneys. Check with a pharmacist." },
+  { a: ["ibuprofen", "naproxen", "diclofenac", "acetylsalicylic", "aspirin"], b: ["methotrexate"],
+    severity: "avoid",
+    note: "NSAID pain relievers (including aspirin and ibuprofen) can raise methotrexate to dangerous levels. Avoid unless your doctor approved the combination." },
+  { a: ["diphenhydramine", "chlorpheniramine", "promethazine"], b: ["diazepam", "lorazepam", "zolpidem", "codeine", "tramadol"],
+    severity: "caution",
+    note: "Both cause drowsiness. Together they can dangerously slow breathing and reactions — avoid driving." },
+  { a: ["paracetamol", "acetaminophen"], b: ["warfarin"],
+    severity: "caution",
+    note: "Regular paracetamol use can strengthen warfarin's effect. Occasional doses are usually fine — ask your doctor if using daily." }
+];
+
+/* salt/filler/descriptor words that are NOT active ingredients — never treat a
+   shared one as a duplicate-drug match, and never search openFDA with one */
+const SALTS = new Set(["sodium", "hydrochloride", "sulfate", "sulphate", "phosphate",
+  "maleate", "besylate", "succinate", "citrate", "tartrate", "acetate", "fumarate",
+  "tablets", "tablet", "capsules", "capsule", "extended", "release", "coated",
+  "multiple", "active", "ingredient", "ingredients", "properties", "combination",
+  "antiseptic", "analgesic", "astringent", "demulcent", "antibiotic", "antifungal",
+  "solution", "suspension", "ointment", "syrup", "unknown"]);
+
+function ingredientsOf(med) {
+  return String((med && (med.generic || med.name)) || "").toLowerCase();
+}
+function ingredientWords(med) {
+  return ingredientsOf(med).split(/[^a-z]+/).filter(w => w.length > 5 && !SALTS.has(w));
+}
+function matchesAny(ing, keys) { return keys.some(k => ing.includes(k)); }
+
+function builtinInteractions(newMed, savedMeds) {
+  const newIng = ingredientsOf(newMed);
+  const newWords = ingredientWords(newMed);
+  const hits = [];
+  for (const saved of savedMeds) {
+    const savedIng = ingredientsOf(saved);
+    if (!savedIng) continue;
+    // duplicate active ingredient (different brand, same drug) — whole-word match only
+    const savedWords = new Set(ingredientWords(saved));
+    if (newWords.some(w => savedWords.has(w))) {
+      hits.push({
+        with: saved.name, severity: "avoid",
+        note: "This appears to contain the same active ingredient as " + saved.name + ". Taking both risks an accidental overdose — many products hide the same drug under different brand names."
+      });
+      continue;
+    }
+    for (const pair of IX_PAIRS) {
+      const hit = (matchesAny(newIng, pair.a) && matchesAny(savedIng, pair.b)) ||
+                  (matchesAny(newIng, pair.b) && matchesAny(savedIng, pair.a));
+      if (hit) {
+        hits.push({ with: saved.name, severity: pair.severity, note: pair.note });
+        break;
+      }
+    }
+  }
+  return hits;
+}
+
+async function geminiInteractions(newMed, savedMeds, key) {
+  const prompt = `You are a careful pharmacist. A person already takes these medicines: ${savedMeds.map(m => m.name + " (" + (m.generic || "?") + ")").join("; ")}.
+They are about to take: ${newMed.name} (${newMed.generic || "?"}).
+Return ONLY JSON: {"interactions":[{"with":"name of the existing medicine","severity":"avoid|caution","note":"one plain sentence explaining the risk"}]}
+Only include REAL, well-established interactions. If there are none, return {"interactions":[]}. Write notes in ${getLang()}.`;
+  const body = {
+    contents: [{ parts: [{ text: prompt }] }],
+    generationConfig: { response_mime_type: "application/json", temperature: 0.1 }
+  };
+  const resp = await geminiRequest(body, 20000);
+  if (!resp.ok) throw new Error("Gemini HTTP " + resp.status);
+  const data = await resp.json();
+  const parsed = JSON.parse(extractJson(data.candidates?.[0]?.content?.parts?.[0]?.text || "{}"));
+  return Array.isArray(parsed.interactions) ? parsed.interactions : [];
+}
+
+async function checkInteractions(newMed) {
+  const saved = getMeds().filter(m => !sameMed(m, newMed));
+  if (!saved.length) return { saved: 0, hits: [] };
+  let hits = builtinInteractions(newMed, saved);
+  const key = getKey();
+  if (canScanLive() && !newMed.demo) {
+    try {
+      const ai = await geminiInteractions(newMed, saved, key);
+      for (const h of ai) {
+        if (!hits.some(x => norm(x.with) === norm(h.with))) hits.push(h);
+      }
+    } catch (e) { console.warn("AI interaction check skipped:", e); }
+  }
+  return { saved: saved.length, hits };
+}
+
+/* ================= scanning flow ================= */
+function ensureKeyThen(openPicker) {
+  if (!canScanLive()) {
+    toast("Live scanning needs a free Gemini key — or try the samples");
+    openSettings();
+    return;
+  }
+  if (!navigator.onLine) {
+    toast("You're offline — reconnect to scan, or try a sample");
+    return;
+  }
+  openPicker();
+}
+/* in-app live camera (Google Lens style) — falls back to the native picker
+   when getUserMedia is unavailable, insecure, or permission is denied */
+let camStream = null;
+let camGen = 0; // bumping invalidates any pending getUserMedia — no view hijack, no leaked stream
+let camBusy = false;
+async function openCamera() {
+  if (!window.isSecureContext || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    $("fileInput").click();
+    return;
+  }
+  if (camBusy) return;
+  camBusy = true;
+  const g = ++camGen;
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: "environment", width: { ideal: 1920 }, height: { ideal: 1440 } },
+      audio: false
+    });
+    if (g !== camGen) { stream.getTracks().forEach(t => t.stop()); return; }
+    if (camStream) camStream.getTracks().forEach(t => t.stop());
+    camStream = stream;
+    /* if the OS/another app kills the camera, never leave a frozen frame that could be scanned */
+    const track = stream.getVideoTracks()[0];
+    if (track) track.addEventListener("ended", () => {
+      if (!$("viewCamera").classList.contains("hidden")) {
+        closeCamera();
+        show("viewScan");
+        toast("Camera stopped — reopen it or choose a photo");
+      }
+    });
+    $("camVideo").srcObject = camStream;
+    $("camVideo").play().catch(() => {});
+    show("viewCamera");
+  } catch (e) {
+    camStream = null;
+    /* after a slow permission prompt the tap's activation has expired and a
+       programmatic picker click gets silently swallowed — only auto-open when allowed */
+    const canClick = !navigator.userActivation || navigator.userActivation.isActive;
+    if (e && e.name === "NotAllowedError") {
+      toast("Camera blocked — tap Choose photo instead");
+      const gal = $("btnGallery");
+      gal.classList.add("attention");
+      setTimeout(() => gal.classList.remove("attention"), 3000);
+      if (canClick) $("fileInput").click();
+    } else if (canClick) {
+      $("fileInput").click();
+    } else {
+      toast("Camera unavailable — tap Choose photo instead");
+    }
+  } finally {
+    camBusy = false;
+  }
+}
+function closeCamera() {
+  camGen++;
+  if (camStream) { camStream.getTracks().forEach(t => t.stop()); camStream = null; }
+  $("camVideo").srcObject = null;
+}
+$("btnCamClose").addEventListener("click", () => { closeCamera(); show("viewScan"); });
+$("btnShutter").addEventListener("click", () => {
+  const v = $("camVideo");
+  const track = camStream && camStream.getVideoTracks()[0];
+  if (!v.videoWidth || v.readyState < 2 || !track || track.readyState !== "live") {
+    toast("Camera is still starting — try again");
+    return;
+  }
+  const scale = Math.min(1, 1536 / Math.max(v.videoWidth, v.videoHeight));
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.round(v.videoWidth * scale);
+  canvas.height = Math.round(v.videoHeight * scale);
+  canvas.getContext("2d").drawImage(v, 0, 0, canvas.width, canvas.height);
+  const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
+  closeCamera();
+  show("viewScan");
+  scanFromDataUrl(dataUrl);
+});
+
+$("btnScan").addEventListener("click", () => ensureKeyThen(openCamera));
+$("btnGallery").addEventListener("click", () => ensureKeyThen(() => $("galleryInput").click()));
+$("scanzone").addEventListener("click", (e) => {
+  if (e.target.closest("button")) return;
+  ensureKeyThen(openCamera);
+});
+$("btnSample").addEventListener("click", () => runDemo());
+[$("fileInput"), $("galleryInput")].forEach(inp => inp.addEventListener("change", (e) => {
+  const f = e.target.files && e.target.files[0];
+  if (f) handleImage(f).catch(err => {
+    console.error(err);
+    show("viewScan");
+    toast("Could not read that file — try again");
+  });
+  e.target.value = "";
+}));
+
+/* mobile copy: drag & drop does not exist on touch */
+if (window.matchMedia && matchMedia("(pointer: coarse)").matches) {
+  $("zoneHint").textContent = "Tap to open your camera, or choose a photo";
+}
+
+/* drag & drop (desktop) */
+const zone = $("scanzone");
+["dragover", "dragenter"].forEach(ev => zone.addEventListener(ev, e => { e.preventDefault(); zone.classList.add("dragover"); }));
+["dragleave", "drop"].forEach(ev => zone.addEventListener(ev, e => { e.preventDefault(); zone.classList.remove("dragover"); }));
+zone.addEventListener("drop", e => {
+  const f = e.dataTransfer.files && e.dataTransfer.files[0];
+  if (f && f.type.startsWith("image/")) {
+    if (!getKey()) { toast("Add your free Gemini key in Settings first — or try the samples"); openSettings(); return; }
+    handleImage(f).catch(err => { console.error(err); show("viewScan"); toast("Could not read that file — try again"); });
+  }
+});
+
+/* Stage text is driven by what is ACTUALLY happening: the vision stages only
+   show while the worker runs, the demo never claims vision it didn't do. */
+const VISION_STAGES = ["On-device vision: looking at your photo", "Straightening and counting pills"];
+const AI_STAGES = ["Reading the label", "Identifying the medicine", "Checking official drug data", "Comparing with your medicines", "Writing it in plain language"];
+const DEMO_STAGES = ["Loading the sample", "Reading cached drug data", "Comparing with your medicines"];
+let stageTimer = null;
+function startStages(list) {
+  clearInterval(stageTimer);
+  let i = 0;
+  $("stageText").textContent = list[0];
+  stageTimer = setInterval(() => {
+    i = Math.min(i + 1, list.length - 1);
+    $("stageText").textContent = list[i];
+  }, 1500);
+}
+function stopStages() { clearInterval(stageTimer); }
+
+$("btnCancelScan").addEventListener("click", () => {
+  scanGen++;
+  stopStages();
+  show("viewScan");
+});
+
+function updateSampleBtn() {
+  $("btnSample").textContent = sampleToggle % 2 === 0 ? "Try a sample — Advil" : "Try sample 2 — Aspirin";
+}
+
+function runDemo() {
+  const med = sampleToggle % 2 === 0 ? SAMPLE_ADVIL : SAMPLE_ASPIRIN;
+  sampleToggle++;
+  updateSampleBtn();
+  const gen = ++scanGen;
+  $("previewImg").src = sampleBoxDataURI(med);
+  show("viewAnalyzing");
+  startStages(DEMO_STAGES);
+  setTimeout(async () => {
+    if (gen !== scanGen) return;
+    /* demos never gamble on venue wifi — the bundled snapshot is instant and honest ("cached") */
+    const fda = FDA_SNAPSHOT[med.generic] || null;
+    const ix = await checkInteractions(med);
+    if (gen !== scanGen) return;
+    stopStages();
+    renderResult(med, fda, ix);
+    show("viewResult");
+  }, 3000);
+}
+
+async function handleImage(file) {
+  let dataUrl;
+  try { dataUrl = await downscaleToDataURL(file); }
+  catch (e) { console.error(e); toast("Could not read that file — try again"); return; }
+  await scanFromDataUrl(dataUrl);
+}
+
+async function scanFromDataUrl(dataUrl) {
+  const key = getKey();
+  if (!canScanLive()) { show("viewScan"); openSettings(); toast("Add your Gemini key first — or use Try a sample"); return; }
+  const gen = ++scanGen;
+  try {
+    if (gen !== scanGen) return;
+    $("previewImg").src = dataUrl;
+    show("viewAnalyzing");
+    startStages(VISION_STAGES);
+    /* Stage 0 — on-device vision. Optional by design: an old phone that cannot
+       run the wasm still gets the full AI scan, just without the measurements. */
+    let vision = null;
+    try {
+      const img = await dataUrlToImage(dataUrl);
+      vision = await Promise.race([
+        visionAnalyze(img),
+        new Promise((_, rej) => setTimeout(() => rej(new Error("vision timeout")), 25000))
+      ]);
+    } catch (e) { console.warn("vision layer skipped:", e); }
+    if (gen !== scanGen) return;
+    if (vision && vision.overlayDataUrl) $("previewImg").src = vision.overlayDataUrl;
+    startStages(AI_STAGES); // vision settled (either way) — now the AI stages, truthfully
+    /* the full photo ALWAYS goes to the AI; the rectified crop rides along as
+       a second image — a wrong crop must never hide the real label */
+    const med = await analyzeWithGemini(dataUrl, key, visionHints(vision), vision && vision.labelDataUrl);
+    if (gen !== scanGen) return;
+    let fda = null;
+    try { fda = await fetchOpenFDAForMed(med); } catch {}
+    const ix = await checkInteractions(med);
+    if (gen !== scanGen) return;
+    stopStages();
+    renderResult(med, fda, ix, vision);
+    show("viewResult");
+  } catch (err) {
+    if (gen !== scanGen) return;
+    stopStages();
+    show("viewScan");
+    console.error(err);
+    const code = err && err.code;
+    if (code === "notmed") toast("That doesn't look like a medicine — photograph the box, bottle or blister sheet");
+    else if (code === "toobig") toast("Photo too large to upload — retake it with the in-app camera");
+    else if (code === "quota") toast("AI quota reached — wait a minute and try again");
+    else if (code === "badkey") { toast("API key looks invalid — check it in Settings"); openSettings(); }
+    else if (code === "blocked") toast("The AI declined this image — try a photo of just the label");
+    else if (code === "busy") toast("The AI is busy — try again in a moment");
+    else if (err && (err.name === "TimeoutError" || err.name === "AbortError")) toast("Network too slow — check your connection and retry");
+    else if (err instanceof TypeError) toast("Connection lost — check your internet and retry");
+    else toast("Could not read that photo — try a clearer shot of the label");
+  }
+}
+
+/* Downscale phone photos before upload: a 6MB camera shot becomes ~300KB,
+   uploads 10-20x faster, and never hits Gemini's request-size cap.
+   Also converts HEIC to JPEG for free via canvas. */
+async function downscaleToDataURL(file) {
+  try {
+    const bmp = await createImageBitmap(file, { imageOrientation: "from-image" });
+    const scale = Math.min(1, 1536 / Math.max(bmp.width, bmp.height));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(bmp.width * scale);
+    canvas.height = Math.round(bmp.height * scale);
+    canvas.getContext("2d").drawImage(bmp, 0, 0, canvas.width, canvas.height);
+    bmp.close();
+    return canvas.toDataURL("image/jpeg", 0.85);
+  } catch {
+    return fileToDataURL(file);
+  }
+}
+function fileToDataURL(file) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(r.result);
+    r.onerror = rej;
+    r.readAsDataURL(file);
+  });
+}
+
+/* ================= On-device vision (OpenCV 5, WASM) =================
+   The competition rule we build around: OpenCV must do SUBSTANTIVE work.
+   Here it does three jobs no LLM can do reliably or offline:
+   1. find the label, un-skew it (perspective correction) and boost contrast
+      so the AI reads a clean flat label instead of a crooked photo,
+   2. detect blister-pack cells and count which pills are intact vs already
+      pressed out — a measurement, not a guess,
+   3. describe pill colour/shape numerically as hints for identification.
+   Everything runs in the browser, inside a Web Worker so the UI never janks;
+   the 11 MB wasm loads once and is cached by the service worker. */
+let visionWorker = null, visionSeq = 0;
+const visionCalls = new Map();
+function getVisionWorker() {
+  if (visionWorker) return visionWorker;
+  visionWorker = new Worker("vision-worker.js");
+  visionWorker.onmessage = (e) => {
+    if (e.data.type !== "result") return;
+    const call = visionCalls.get(e.data.id);
+    if (!call) return;
+    visionCalls.delete(e.data.id);
+    if (e.data.error) call.reject(new Error(e.data.error)); else call.resolve(e.data.result);
+  };
+  visionWorker.onerror = () => {
+    for (const c of visionCalls.values()) c.reject(new Error("vision worker crashed"));
+    visionCalls.clear();
+    try { visionWorker.terminate(); } catch {}
+    visionWorker = null; // next scan gets a fresh worker instead of a dead one
+  };
+  return visionWorker;
+}
+/* Warm the worker in the background: the 11 MB wasm compiles OFF the main
+   thread, so the page never janks - skipped when the user asked to save data. */
+if (!(navigator.connection && navigator.connection.saveData)) {
+  const whenIdle = window.requestIdleCallback
+    ? (fn) => requestIdleCallback(fn, { timeout: 10000 })
+    : (fn) => setTimeout(fn, 4000);
+  whenIdle(() => { try { getVisionWorker(); } catch {} });
+}
+
+function dataUrlToImage(dataUrl) {
+  return new Promise((res, rej) => {
+    const img = new Image();
+    img.onload = () => res(img);
+    img.onerror = () => rej(new Error("image decode failed"));
+    img.src = dataUrl;
+  });
+}
+function imageToImageData(el) {
+  /* hard cap at 1536px: the downscale fallback path can hand us a raw 12MP
+     photo, which would mean ~150MB of transient pixel buffers on exactly
+     the weakest phones this app targets */
+  const w = el.naturalWidth || el.width, h = el.naturalHeight || el.height;
+  const scale = Math.min(1, 1536 / Math.max(w, h));
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.max(1, Math.round(w * scale));
+  canvas.height = Math.max(1, Math.round(h * scale));
+  const ctx = canvas.getContext("2d");
+  ctx.drawImage(el, 0, 0, canvas.width, canvas.height);
+  return ctx.getImageData(0, 0, canvas.width, canvas.height);
+}
+function imageDataToDataUrl(imageData, quality) {
+  const canvas = document.createElement("canvas");
+  canvas.width = imageData.width; canvas.height = imageData.height;
+  canvas.getContext("2d").putImageData(imageData, 0, 0);
+  return canvas.toDataURL("image/jpeg", quality || 0.85);
+}
+
+/* Run the OpenCV pipeline in the worker. Never blocks the UI; a phone that
+   cannot run the wasm just times out here and the scan continues without it. */
+async function visionAnalyze(el) {
+  const worker = getVisionWorker();
+  const imageData = imageToImageData(el);
+  const id = ++visionSeq;
+  const result = await new Promise((resolve, reject) => {
+    const guard = setTimeout(() => {
+      visionCalls.delete(id);
+      reject(new Error("vision timed out"));
+    }, 30000);
+    visionCalls.set(id, {
+      resolve: (v) => { clearTimeout(guard); resolve(v); },
+      reject: (e) => { clearTimeout(guard); reject(e); },
+    });
+    worker.postMessage({ id, imageData }, [imageData.data.buffer]);
+  });
+  return {
+    deskewed: result.deskewed,
+    pills: result.pills,
+    colorName: result.colorName,
+    ms: result.ms,
+    labelDataUrl: result.labelImage ? imageDataToDataUrl(result.labelImage, 0.9) : null,
+    overlayDataUrl: result.overlayImage ? imageDataToDataUrl(result.overlayImage, 0.8) : null,
+  };
+}
+/* Turn measurements into factual, hedged sentences for the AI prompt. */
+function visionHints(vision) {
+  if (!vision) return "";
+  const bits = [];
+  if (vision.deskewed) bits.push("a rectangular region was straightened on-device — it may or may not be the label");
+  if (vision.pills) {
+    bits.push(vision.pills.full === null
+      ? `${vision.pills.total} circular shapes consistent with a blister pack were seen (could not tell intact from taken)`
+      : `${vision.pills.total} blister-like cells were seen: ${vision.pills.full} look intact, ${vision.pills.empty} look already pressed out`);
+  }
+  if (vision.colorName) bits.push(`the pills look ${vision.colorName}`);
+  if (!bits.length) return "";
+  return "On-device computer vision (OpenCV) measured: " + bits.join("; ") +
+    ". These measurements describe appearance only and can never identify a medicine by themselves — trust readable printed text over them.";
+}
+
+/* ================= Gemini ================= */
+function extractJson(text) {
+  const t = String(text).replace(/```json|```/g, "");
+  const a = t.indexOf("{"), b = t.lastIndexOf("}");
+  return a >= 0 && b > a ? t.slice(a, b + 1) : t;
+}
+function gemErr(code, msg) { const e = new Error(msg || code); e.code = code; return e; }
+
+/* One door to Gemini: the user's own key when present, otherwise the deployed
+   rate-limited proxy (PROXY_URL). The proxy returns Gemini's JSON unchanged. */
+function geminiRequest(body, timeoutMs) {
+  const key = getKey();
+  const url = key
+    ? "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
+    : PROXY_URL;
+  const headers = { "Content-Type": "application/json" };
+  if (key) headers["x-goog-api-key"] = key;
+  return fetch(url, { method: "POST", headers, body: JSON.stringify(body), signal: timeoutSignal(timeoutMs) });
+}
+
+async function analyzeWithGemini(dataUrl, key, hints, cropDataUrl) {
+  const [meta, b64] = dataUrl.split(",");
+  const mime = (meta.match(/data:(.*?);/) || [])[1] || "image/jpeg";
+  const lang = getLang();
+  const prompt = `You are MedLens, a careful pharmacist's assistant. This photo shows a medicine package, bottle, blister sheet or label.
+${cropDataUrl ? "Two images are attached: the full photo first, then a machine-straightened rectangular region that MAY be the label. If the second image does not show the label, ignore it and use the full photo.\n" : ""}${hints ? hints + "\n" : ""}
+Read it and return ONLY JSON with this exact shape:
+{
+ "name": "brand name + strength as printed, e.g. 'Panadol 500 mg'",
+ "generic": "active ingredient NAMES only, comma-separated, e.g. 'Paracetamol' or 'Lidocaine, Cetrimide'. Never write a description here — if you cannot read the actual ingredient names, use an empty string.",
+ "strength": "e.g. '500 mg'",
+ "form": "tablets / syrup / capsules / cream etc.",
+ "purpose": "2-3 plain sentences: what this medicine is and what it treats. Simple words a 12-year-old understands.",
+ "how_to_take": ["dosing guidance - see the rules below", "max 4 short items"],
+ "warnings": ["the most important safety warnings for this medicine", "max 5 short items, plain words"],
+ "interactions": ["medicines or substances that interact badly with it", "max 4 items"],
+ "seek_doctor": ["specific danger signs that mean the person should see a doctor or emergency care NOW", "max 4 short items"],
+ "confidence": "high | medium | low - how sure you are about the identification",
+ "rx_only": false,
+ "not_a_medicine": false
+}
+Dosing rules:
+- For over-the-counter medicines, give the typical adult dosing from the label if visible, otherwise standard label guidance.
+- If this is a prescription-only medicine (antibiotics, blood thinners, insulin, opioids, benzodiazepines, antidepressants, blood-pressure or diabetes medicines, steroids, etc.), set rx_only to true and set how_to_take to exactly one item: "Prescription medicine - take it exactly as your doctor prescribed. Do not use this scan to decide your dose." For antibiotics add a second item: "Finish the full course even if you feel better."
+- Never invent doses, and never give doses for children.
+Other rules:
+- If there is no readable printed text anywhere in the photo — loose pills, OR a blister sheet with blank or unreadable foil — set confidence to "low" and make the FIRST warning: "Pills cannot be reliably identified by appearance alone - check the original packaging or ask a pharmacist before taking this."
+- Keep "name", "generic", "strength" and "form" in the label's own language, but write "purpose", "how_to_take", "warnings", "interactions" and "seek_doctor" in ${lang}.
+- If the photo is not a medicine at all, set not_a_medicine to true and leave other fields empty.
+- Never invent a brand name you cannot read. If unsure of the brand, identify by active ingredient and lower the confidence.`;
+
+  const parts = [
+    { text: prompt },
+    { inline_data: { mime_type: mime, data: b64 } }
+  ];
+  if (cropDataUrl) {
+    const [cMeta, cB64] = cropDataUrl.split(",");
+    const cMime = (cMeta.match(/data:(.*?);/) || [])[1] || "image/jpeg";
+    parts.push({ inline_data: { mime_type: cMime, data: cB64 } });
+  }
+  const body = {
+    contents: [{ parts }],
+    generationConfig: { response_mime_type: "application/json", temperature: 0.2 }
+  };
+  const resp = await geminiRequest(body, 30000);
+  if (!resp.ok) {
+    if (resp.status === 429) throw gemErr("quota");
+    if (resp.status === 413) throw gemErr("toobig");
+    if (resp.status === 400 || resp.status === 403) throw gemErr("badkey");
+    if (resp.status >= 500) throw gemErr("busy");
+    throw gemErr("busy", "Gemini HTTP " + resp.status);
+  }
+  const data = await resp.json();
+  if (data.promptFeedback && data.promptFeedback.blockReason) throw gemErr("blocked");
+  const cand = data.candidates && data.candidates[0];
+  if (!cand || cand.finishReason === "SAFETY") throw gemErr("blocked");
+  const text = cand.content?.parts?.[0]?.text || "";
+  let med;
+  try { med = JSON.parse(extractJson(text)); }
+  catch { throw gemErr("busy", "unparseable response"); }
+  if (med.not_a_medicine) throw gemErr("notmed");
+  if (!med.name && !med.generic) throw gemErr("busy", "no medicine fields");
+  /* normalize — Gemini occasionally returns a string where an array belongs,
+     which would crash render and masquerade as a network error */
+  for (const k of ["how_to_take", "warnings", "interactions", "seek_doctor"]) {
+    if (!Array.isArray(med[k])) med[k] = med[k] ? [String(med[k])] : [];
+  }
+  for (const k of ["name", "generic", "strength", "form", "purpose"]) {
+    if (med[k] != null && typeof med[k] !== "string") med[k] = String(med[k]);
+  }
+  return med;
+}
+
+/* ================= openFDA ================= */
+function sanitizeFdaTerm(s) {
+  return String(s || "")
+    .replace(/["()\[\]{}^~*?:\\\/&+;]/g, " ")
+    .replace(/\b\d+(\.\d+)?\s*(mg|mcg|g|ml|iu|%)\b/gi, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+async function fetchOpenFDA(term) {
+  const clean = sanitizeFdaTerm(term);
+  if (!clean) return null;
+  const q = encodeURIComponent('"' + clean + '"');
+  const url = `https://api.fda.gov/drug/label.json?search=(openfda.generic_name:${q}+openfda.brand_name:${q})&limit=1`;
+  const resp = await fetch(url, { signal: timeoutSignal(8000) });
+  if (!resp.ok) return null;
+  const data = await resp.json();
+  const r = data.results && data.results[0];
+  if (!r) return null;
+  const excerpt = (s) => {
+    if (!s) return null;
+    const t = String(s).replace(/\s+/g, " ").trim();
+    return t.length > 320 ? t.slice(0, 320) + "…" : t;
+  };
+  return {
+    matched: true,
+    brand: r.openfda?.brand_name?.[0] || null,
+    generic: r.openfda?.generic_name?.[0] || null,
+    purpose: excerpt(r.purpose?.[0]),
+    dosage: excerpt(r.dosage_and_administration?.[0]),
+    warnings: excerpt(r.warnings?.[0]),
+    setid: r.set_id || null
+  };
+}
+/* Try generic, then brand name, then a substantial ingredient word — and only
+   claim a match when the returned label actually overlaps the scanned medicine
+   (so the badge is never attached to the wrong product). */
+async function fetchOpenFDAForMed(med) {
+  const genClean = sanitizeFdaTerm(med.generic);
+  // a real ingredient list is short — a long "generic" is a description, don't search with it
+  const genUsable = genClean && genClean.split(" ").length <= 4;
+  const fallbackWord = genUsable
+    ? (genClean.toLowerCase().split(/[^a-z]+/).find(w => w.length > 5 && !SALTS.has(w)) || "")
+    : "";
+  const candidates = [
+    genUsable ? genClean : "",
+    sanitizeFdaTerm(med.name),
+    fallbackWord
+  ].filter(t => t && t.length > 2);
+  for (const term of candidates) {
+    let fda = null;
+    try { fda = await fetchOpenFDA(term); } catch {}
+    if (fda && fdaMatchesMed(fda, med)) return fda;
+  }
+  return null;
+}
+function fdaMatchesMed(fda, med) {
+  const target = norm((med.generic || "") + (med.name || ""));
+  const genWord = norm((fda.generic || "").split(/[,;\/]/)[0]);
+  const brandWord = norm((fda.brand || "").split(" ")[0]);
+  // require a substantial ingredient/brand token — short or generic words match too loosely
+  return (genWord && genWord.length > 4 && !SALTS.has(genWord) && target.includes(genWord)) ||
+         (brandWord && brandWord.length > 4 && target.includes(brandWord));
+}
+
+/* ================= result rendering ================= */
+function renderResult(med, fda, ix, vision) {
+  const matched = fda && fda.matched;
+  const conf = (med.confidence || "medium").toLowerCase();
+  const badge = matched
+    ? '<span class="badge ok">MATCHED · OPENFDA</span>'
+    : `<span class="badge ai">AI READ · ${esc(conf.toUpperCase())} CONFIDENCE</span>`;
+  const rxBadge = med.rx_only ? '<span class="badge rx">PRESCRIPTION — FOLLOW YOUR DOCTOR</span>' : "";
+
+  const list = (arr) => (arr || []).map(x => `<li>${esc(x)}</li>`).join("");
+  const chips = [med.strength, med.form, med.demo ? "Sample demo" : null].filter(Boolean)
+    .map(c => `<span class="chip">${esc(c)}</span>`).join("");
+
+  const lowConfBanner = (!matched && conf === "low") ? `
+    <div class="conf-banner"><b>Not fully sure this is ${esc(med.name || med.generic)}.</b> Double-check the label on your package before trusting the details below.</div>` : "";
+
+  /* interaction section */
+  const isFirstDemo = med.demo && ix && ix.saved === 0 && norm(med.name) === norm(SAMPLE_ADVIL.name);
+  let ixHtml;
+  if (!ix || ix.saved === 0) {
+    ixHtml = isFirstDemo
+      ? `<div class="demo-callout"><b>See the safety net in action:</b> save this medicine, then scan the Aspirin sample — MedLens will flag the real ibuprofen-aspirin interaction between them.<br>
+         <button class="btn btn-primary" id="btnDemoNext">Save &amp; scan the Aspirin sample</button></div>`
+      : `<div class="ix-note">No saved medicines to compare yet. Save the medicines you take, and every new scan will be checked against them automatically.</div>`;
+  } else if (!ix.hits.length) {
+    ixHtml = `
+      <div class="ix-clear"><span class="dot"></span>No known clashes with your ${ix.saved} saved medicine${ix.saved > 1 ? "s" : ""}.</div>
+      <div class="ix-note">Checked against well-known combinations. Your pharmacist knows your full picture — ask them to be sure.</div>`;
+  } else {
+    ixHtml = ix.hits.map(h => `
+      <div class="ix-item ${h.severity === "avoid" ? "avoid" : "caution"}">
+        <span class="with">${esc(h.with)}</span><span class="ix-sev">${h.severity === "avoid" ? "AVOID" : "CAUTION"}</span>
+        <div class="note">${esc(h.note)}</div>
+      </div>`).join("") +
+      `<div class="ix-note">Talk to a doctor or pharmacist before combining these.</div>`;
+  }
+  const ixSection = `
+    <div class="section">
+      <h3>Checked against your medicines</h3>
+      ${ixHtml}
+    </div>`;
+
+  const fdaChip = matched
+    ? (fda.setid
+        ? `<span class="chip fda"><a href="https://dailymed.nlm.nih.gov/dailymed/setid.cfm?setid=${esc(fda.setid)}" target="_blank" rel="noopener">openFDA / DailyMed label${fda.cached ? " (cached)" : ""}</a></span>`
+        : `<span class="chip fda">Matched in openFDA</span>`)
+    : "";
+  const sources = fdaChip + `<span class="chip">Read by Gemini AI</span><span class="chip">Built-in interaction table</span>`;
+  const sourceNote = `<div class="ix-note">An openFDA match confirms this medicine exists in the official US label database. The plain-language explanation itself is AI-written — confirm the name on this card matches your package.</div>`;
+
+  const whatItIs = `
+    <div class="section">
+      <h3>What it is</h3>
+      <div class="body">${esc(med.purpose || "No description available.")}</div>
+    </div>`;
+
+  /* when there is nothing to compare yet, lead with the product value instead of an empty state */
+  const topSections = (ix && ix.saved > 0) ? ixSection + whatItIs : whatItIs + ixSection;
+
+  const alreadySaved = getMeds().some(m => sameMed(m, med));
+
+  /* ---- the vision card: show the measurements, in plain words ---- */
+  let visionSection = "";
+  if (vision && (vision.deskewed || vision.pills)) {
+    const pills = vision.pills;
+    const splitKnown = pills && pills.full !== null;
+    let refill = "";
+    if (splitKnown && pills.full > 0) {
+      const savedMatch = getMeds().find(m => sameMed(m, med));
+      const sch = savedMatch && savedMatch.schedule;
+      const perDay = sch ? sch.slots.filter(s => s.on).length : 0;
+      if (perDay > 0) {
+        /* respect the dose the user typed ("2 tablets" -> 2); default 1 */
+        const perDose = Math.max(1, parseInt(sch.dose, 10) || 1);
+        const days = Math.floor(pills.full / (perDay * perDose));
+        refill = days < 1
+          ? `<div class="ix-note">The intact pills on this sheet cover <b>less than a day</b> of your reminder schedule — worth checking how many sheets you have left.</div>`
+          : `<div class="ix-note">The ${pills.full} intact pills on this sheet cover about <b>${days} day${days === 1 ? "" : "s"}</b> of your reminder schedule (${perDay} a day${perDose > 1 ? `, ${perDose} pills each` : ""}). Other sheets in the pack are not counted.</div>`;
+      }
+    }
+    const visChips = [];
+    if (vision.deskewed) visChips.push('<span class="chip vis">Label region straightened</span>');
+    if (pills) {
+      visChips.push(`<span class="chip vis">${pills.total} blister cells</span>`);
+      if (splitKnown) {
+        visChips.push(`<span class="chip vis ok">${pills.full} intact</span>`);
+        if (pills.empty) visChips.push(`<span class="chip vis used">${pills.empty} already taken</span>`);
+      } else {
+        visChips.push(`<span class="chip vis">could not tell intact from taken</span>`);
+      }
+    }
+    const altParts = [
+      vision.deskewed ? "the straightened region outlined" : null,
+      pills ? (splitKnown
+        ? `${pills.total} blister cells marked: ${pills.full} intact, ${pills.empty} pressed out`
+        : `${pills.total} blister cells marked`) : null,
+    ].filter(Boolean);
+    visionSection = `
+    <div class="section">
+      <h3>What the on-device vision saw</h3>
+      ${vision.overlayDataUrl ? `<img class="vis-img" src="${vision.overlayDataUrl}" alt="Your photo with ${esc(altParts.join("; "))}">` : ""}
+      <div class="chips">${visChips.join("")}</div>
+      <div class="ix-note">Measured by OpenCV running on this phone in ${vision.ms} ms — no internet, no AI guessing.${pills ? " Pill counts are an estimate from the photo; check the pack." : ""}</div>
+      ${refill}
+    </div>`;
+  }
+
+  $("resultBody").innerHTML = `
+    <div class="med-card">
+      <div class="med-head">
+        <div>
+          <div class="med-name">${esc(med.name || med.generic || "Unknown medicine")}</div>
+          <div class="med-generic">${esc(med.generic || "")}</div>
+        </div>
+        <div>${badge}${rxBadge ? "<div style='margin-top:6px;text-align:right'>" + rxBadge + "</div>" : ""}</div>
+      </div>
+      <div class="chips">${chips}</div>
+      ${lowConfBanner}
+    </div>
+
+    ${visionSection}
+
+    ${topSections}
+
+    <div class="section">
+      <h3>How to take it</h3>
+      <ul>${list(med.how_to_take)}</ul>
+    </div>
+
+    <div class="section warn">
+      <h3>Warnings</h3>
+      <ul>${list(med.warnings)}</ul>
+    </div>
+
+    ${med.seek_doctor && med.seek_doctor.length ? `
+    <div class="section warn">
+      <h3>See a doctor now if</h3>
+      <ul>${list(med.seek_doctor)}</ul>
+    </div>` : ""}
+
+    <div class="section">
+      <h3>Interactions</h3>
+      <ul>${list(med.interactions)}</ul>
+    </div>
+
+    ${matched && (fda.purpose || fda.dosage || fda.warnings) ? `
+    <div class="section">
+      <h3>From the official FDA label</h3>
+      ${fda.purpose ? `<div class="body"><b>Purpose:</b> ${esc(fda.purpose)}</div>` : ""}
+      ${fda.dosage ? `<div class="body"><b>Directions:</b> ${esc(fda.dosage)}</div>` : ""}
+      ${fda.warnings ? `<div class="body"><b>Warnings:</b> ${esc(fda.warnings)}</div>` : ""}
+      <div class="ix-note">Quoted from the official US label of a matching product${fda.setid ? ` — <a href="https://dailymed.nlm.nih.gov/dailymed/setid.cfm?setid=${esc(fda.setid)}" target="_blank" rel="noopener" style="color:var(--blue)">read the full label</a>` : ""}. Strengths and directions can differ from your package — the plain-language card above is an AI summary, this is the source.</div>
+    </div>` : ""}
+
+    <div class="section sources">
+      <h3>Sources</h3>
+      <div class="chips">${sources}</div>
+      ${sourceNote}
+    </div>
+
+    <div class="result-actions">
+      <button class="btn ${alreadySaved ? "btn-ghost" : "btn-primary"}" id="btnSaveMed" ${alreadySaved ? "disabled" : ""}>${alreadySaved ? "Saved to my medicines" : "Save to my medicines"}</button>
+    </div>`;
+
+  function saveThisMed() {
+    const meds = getMeds();
+    if (meds.some(m => sameMed(m, med))) return false;
+    meds.push({ name: med.name, generic: med.generic, strength: med.strength || "", at: Date.now(), data: med, fda: fda || null });
+    setMeds(meds);
+    return true;
+  }
+  $("btnSaveMed").addEventListener("click", () => {
+    if (saveThisMed()) {
+      toast("Saved — see My medicines (top right). Future scans are checked against it");
+      const b = $("btnSaveMed");
+      b.textContent = "Saved to my medicines";
+      b.classList.remove("btn-primary");
+      b.classList.add("btn-ghost");
+      b.disabled = true;
+    }
+  });
+  const demoNext = $("btnDemoNext");
+  if (demoNext) demoNext.addEventListener("click", () => {
+    saveThisMed();
+    runDemo(); /* sampleToggle already advanced past Advil, so this runs Aspirin */
+  });
+}
+
+/* ================= my meds + reminders ================= */
+$("btnMeds").addEventListener("click", () => { closeCamera(); renderMeds(); show("viewMeds"); });
+$("btnBackMeds").addEventListener("click", () => show("viewScan"));
+
+function renderMeds() {
+  const meds = getMeds();
+  const created = meds.some(m => !m.schedule);
+  meds.forEach(ensureSchedule);
+  if (created) setMeds(meds);
+  $("medlist").innerHTML = meds.length
+    ? meds.map((m, i) => {
+        const sch = m.schedule;
+        return `
+      <div class="item">
+        <div class="row1">
+          <div><button class="n" data-view="${i}">${esc(m.name)}</button><div class="g">${esc(m.generic || "")}</div></div>
+          <button class="rm" data-i="${i}">Remove</button>
+        </div>
+        <div class="row2">
+          <label>My dose</label>
+          <input type="text" class="dose-in" data-dose="${i}" value="${esc(sch.dose)}" placeholder="e.g. 1 tablet">
+          <span class="dose-hint">shown in your reminder</span>
+        </div>
+        <div class="slots-label">Remind me — tap a time of day to turn a daily reminder on</div>
+        <div class="slots">
+          ${sch.slots.map((s, j) => `
+          <div class="slot ${s.on ? "on" : ""}">
+            <button class="slot-t" data-slot="${i}:${j}" aria-pressed="${s.on}">${s.on ? "●" : "○"} ${esc(s.label)}</button>
+            <input type="time" data-slottime="${i}:${j}" value="${esc(s.time)}">
+          </div>`).join("")}
+        </div>
+      </div>`;
+      }).join("")
+    : `<div class="empty">No medicines saved yet. Scan one and tap "Save".</div>
+       <div class="empty-actions">
+         <button class="btn btn-primary" id="emptyScan">Scan a medicine</button>
+         <button class="btn btn-ghost" id="emptySample">Try a sample</button>
+       </div>`;
+
+  const emptyScan = $("emptyScan");
+  if (emptyScan) emptyScan.addEventListener("click", () => { show("viewScan"); ensureKeyThen(openCamera); });
+  const emptySample = $("emptySample");
+  if (emptySample) emptySample.addEventListener("click", () => runDemo());
+
+  $("medlist").querySelectorAll(".rm").forEach(b => b.addEventListener("click", () => {
+    const meds2 = getMeds();
+    meds2.splice(Number(b.dataset.i), 1);
+    setMeds(meds2);
+    renderMeds();
+  }));
+  $("medlist").querySelectorAll(".n[data-view]").forEach(n => n.addEventListener("click", async () => {
+    const m = getMeds()[Number(n.dataset.view)];
+    if (m && m.data) {
+      const gen = ++scanGen;
+      const ix = await checkInteractions(m.data);
+      if (gen !== scanGen) return;
+      renderResult(m.data, m.fda || null, ix);
+      show("viewResult");
+    } else {
+      toast("Scan this medicine again to see its full card");
+    }
+  }));
+  $("medlist").querySelectorAll(".dose-in").forEach(inp => inp.addEventListener("change", () => {
+    const meds2 = getMeds();
+    ensureSchedule(meds2[Number(inp.dataset.dose)]).dose = inp.value.trim() || "1 dose";
+    setMeds(meds2);
+    toast("Dose updated");
+  }));
+  $("medlist").querySelectorAll(".slot-t").forEach(b => b.addEventListener("click", async () => {
+    const [i, j] = b.dataset.slot.split(":").map(Number);
+    /* ask for permission BEFORE touching state — the await can outlive other edits */
+    const wantOn = !ensureSchedule(getMeds()[i]).slots[j].on;
+    if (wantOn && "Notification" in window && Notification.permission === "default") {
+      try { await Notification.requestPermission(); } catch {}
+    }
+    const meds2 = getMeds();
+    if (!meds2[i]) { renderMeds(); return; }
+    const sch = ensureSchedule(meds2[i]);
+    sch.slots[j].on = wantOn;
+    setMeds(meds2);
+    renderMeds();
+    if (wantOn) {
+      toast(meds2[i].name + " — " + sch.slots[j].label.toLowerCase() + " reminder at " + sch.slots[j].time);
+      if ("Notification" in window && Notification.permission === "denied") {
+        setTimeout(() => toast("Notifications are blocked in the browser — reminders will show inside the app only"), 3400);
+      }
+    }
+  }));
+  $("medlist").querySelectorAll("input[data-slottime]").forEach(inp => inp.addEventListener("change", () => {
+    const [i, j] = inp.dataset.slottime.split(":").map(Number);
+    const meds2 = getMeds();
+    const sch = ensureSchedule(meds2[i]);
+    /* an empty time would leave the slot armed but permanently silent — reject it */
+    if (!inp.value) { inp.value = sch.slots[j].time; return; }
+    sch.slots[j].time = inp.value;
+    setMeds(meds2);
+  }));
+}
+
+/* reminder loop — fires while the app is open; keyed by day+minute so each slot repeats daily */
+let lastFiredKey = "";
+setInterval(() => {
+  const now = new Date();
+  const hhmm = String(now.getHours()).padStart(2, "0") + ":" + String(now.getMinutes()).padStart(2, "0");
+  const key = now.toDateString() + " " + hhmm;
+  if (key === lastFiredKey) return;
+  const due = [];
+  for (const m of getMeds()) {
+    if (m.schedule) {
+      for (const s of m.schedule.slots) {
+        if (s.on && s.time === hhmm) { due.push(m.name + (m.schedule.dose ? " — " + m.schedule.dose : "")); break; }
+      }
+    } else if (m.remindOn && m.remindAt === hhmm) {
+      due.push(m.name);
+    }
+  }
+  if (due.length) {
+    lastFiredKey = key;
+    const names = due.join(", ");
+    toast("Time to take: " + names);
+    notify("MedLens reminder", "Time to take: " + names);
+  }
+}, 20000);
+
+async function notify(title, body) {
+  if (!("Notification" in window) || Notification.permission !== "granted") return;
+  try {
+    /* page-created Notification throws on Android Chrome — use the SW when we have one */
+    const reg = "serviceWorker" in navigator ? await navigator.serviceWorker.getRegistration() : null;
+    if (reg && reg.showNotification) reg.showNotification(title, { body, icon: "icon-192.png" });
+    else new Notification(title, { body, icon: "icon-192.png" });
+  } catch {}
+}
+
+/* ================= navigation & settings ================= */
+$("homeLink").addEventListener("click", () => { scanGen++; stopStages(); closeCamera(); show("viewScan"); });
+$("btnBack").addEventListener("click", () => show("viewScan"));
+$("btnSettings").addEventListener("click", openSettings);
+$("btnCloseSettings").addEventListener("click", closeSettings);
+$("settingsVeil").addEventListener("click", e => { if (e.target === $("settingsVeil")) closeSettings(); });
+$("btnSaveKey").addEventListener("click", () => {
+  const v = $("keyInput").value.trim();
+  if (v) localStorage.setItem(LS_KEY, v);
+  else localStorage.removeItem(LS_KEY);
+  localStorage.setItem(LS_LANG, $("langSelect").value);
+  toast(v ? "Saved — live scanning enabled" : "Saved — demo mode (no key)");
+  refreshKeyUI();
+  closeSettings();
+});
+function openSettings() {
+  $("keyInput").value = getKey();
+  $("langSelect").value = getLang();
+  $("keyStatus").textContent = getKey() ? "A key is saved on this device." : "";
+  $("keyStatus").className = "status ok";
+  $("demoEscape").classList.toggle("hidden", !!getKey());
+  $("settingsVeil").classList.add("open");
+}
+$("btnModalDemo").addEventListener("click", () => { closeSettings(); show("viewScan"); runDemo(); });
+function closeSettings() { $("settingsVeil").classList.remove("open"); }
+function refreshKeyUI() {
+  const has = canScanLive();
+  $("keyhint").innerHTML = has
+    ? ""
+    : 'Demo mode — live camera scanning needs a free Gemini key. <button class="linklike" id="hintOpen">Add it in Settings</button>';
+  $("btnSettings").classList.toggle("attention", !has);
+  /* keyless visitors (judges) get the demo as the primary action; keyed users get the camera */
+  $("btnSample").classList.toggle("btn-primary", !has);
+  $("btnSample").classList.toggle("btn-ghost", has);
+  $("btnScan").classList.toggle("btn-primary", has);
+  $("btnScan").classList.toggle("btn-ghost", !has);
+  const h = $("hintOpen");
+  if (h) h.addEventListener("click", openSettings);
+}
+refreshKeyUI();
+refreshMedCount();
+updateSampleBtn();
+
+/* ================= PWA ================= */
+if ("serviceWorker" in navigator && location.protocol !== "file:") {
+  navigator.serviceWorker.register("sw.js").catch(() => {});
+}
+
+/* ================= sample box images (inline SVG, no external assets) ================= */
+function sampleBoxDataURI(med) {
+  const isAspirin = med === SAMPLE_ASPIRIN;
+  const bg = isAspirin ? "#1f7a4d" : "#2b6cb0";
+  const bgDark = isAspirin ? "#175c39" : "#234e85";
+  const tint = isAspirin ? "#cfe7db" : "#cfe0f7";
+  const tint2 = isAspirin ? "#e2efe9" : "#e3ecfb";
+  const brand = isAspirin ? "Aspirin" : "Advil";
+  const sub = isAspirin ? "acetylsalicylic acid" : "ibuprofen tablets";
+  const strength = isAspirin ? "300 mg" : "200 mg";
+  const tagline = isAspirin ? "Pain relief / Anti-inflammatory" : "Pain reliever / Fever reducer";
+  const count = isAspirin ? "30 tablets" : "50 coated tablets";
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="600" height="440" viewBox="0 0 600 440">
+    <rect width="600" height="440" fill="#eef2f8"/>
+    <rect x="70" y="70" width="460" height="300" rx="14" fill="${bg}"/>
+    <rect x="70" y="70" width="460" height="86" rx="14" fill="${bgDark}"/>
+    <text x="100" y="128" font-family="Segoe UI, sans-serif" font-size="44" font-weight="700" fill="#ffffff">${brand}</text>
+    <text x="${isAspirin ? 260 : 230}" y="128" font-family="Segoe UI, sans-serif" font-size="22" fill="${tint}">${sub}</text>
+    <text x="100" y="205" font-family="Segoe UI, sans-serif" font-size="30" font-weight="600" fill="#ffffff">${strength}</text>
+    <text x="100" y="245" font-family="Segoe UI, sans-serif" font-size="19" fill="${tint2}">${tagline}</text>
+    <text x="100" y="330" font-family="Segoe UI, sans-serif" font-size="17" fill="${tint}">${count}</text>
+    <circle cx="470" cy="300" r="34" fill="#ffffff"/>
+    <circle cx="470" cy="300" r="26" fill="${isAspirin ? "#7fd3a8" : "#f6c04d"}"/>
+  </svg>`;
+  return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+}
+
+/* ================= Vision self-test (?selftest=1) =================
+   Synthetic images with KNOWN ground truth, so the pipeline is verified
+   by assertion, not by eyeball: a skewed label must deskew, a drawn
+   blister pack must count 10 cells with 3 pressed out. */
+function stMakeLabel() {
+  const c = document.createElement("canvas"); c.width = 800; c.height = 600;
+  const g = c.getContext("2d");
+  g.fillStyle = "#6b7686"; g.fillRect(0, 0, 800, 600);          // desk background
+  g.save();
+  g.beginPath();                                                  // skewed white label
+  g.moveTo(160, 120); g.lineTo(660, 170); g.lineTo(620, 500); g.lineTo(120, 440);
+  g.closePath(); g.fillStyle = "#f5f6f8"; g.fill();
+  g.clip();
+  g.fillStyle = "#1c2a44"; g.font = "700 42px sans-serif";
+  g.fillText("PARACETAMOL", 200, 240);
+  g.font = "500 28px sans-serif";
+  g.fillText("500 mg tablets", 210, 300);
+  g.fillText("Take with water", 215, 360);
+  g.restore();
+  return c;
+}
+function stMakeBlister(total, empty) {
+  const c = document.createElement("canvas"); c.width = 760; c.height = 420;
+  const g = c.getContext("2d");
+  g.fillStyle = "#9aa3b0"; g.fillRect(0, 0, 760, 420);           // tray background
+  g.fillStyle = "#c4cad3"; g.fillRect(40, 40, 680, 340);         // blister sheet
+  const cols = 5, rows = Math.ceil(total / cols), r = 42;
+  let made = 0;
+  for (let row = 0; row < rows; row++) for (let col = 0; col < cols; col++) {
+    if (made >= total) break;
+    const cx = 115 + col * 135, cy = 115 + row * 190;
+    const isEmpty = made < empty;                                 // first N cells pressed out
+    g.beginPath(); g.arc(cx, cy, r, 0, Math.PI * 2);              // cell rim
+    g.strokeStyle = "#59606c"; g.lineWidth = 5; g.stroke();
+    if (isEmpty) {
+      /* torn foil: dark hole + noisy speckle = high texture */
+      g.beginPath(); g.arc(cx, cy, r - 4, 0, Math.PI * 2);
+      g.fillStyle = "#3a3f47"; g.fill();
+      for (let s = 0; s < 260; s++) {
+        const a = Math.random() * Math.PI * 2, d = Math.random() * (r - 8);
+        g.fillStyle = Math.random() > 0.5 ? "#7d8593" : "#20242a";
+        g.fillRect(cx + Math.cos(a) * d, cy + Math.sin(a) * d, 3, 3);
+      }
+    } else {
+      /* intact pill: smooth bright dome */
+      const grad = g.createRadialGradient(cx - 8, cy - 10, 4, cx, cy, r - 4);
+      grad.addColorStop(0, "#ffffff"); grad.addColorStop(1, "#dde2e9");
+      g.beginPath(); g.arc(cx, cy, r - 4, 0, Math.PI * 2);
+      g.fillStyle = grad; g.fill();
+    }
+    made++;
+  }
+  return c;
+}
+async function runSelfTest() {
+  document.body.innerHTML = `<div style="max-width:760px;margin:30px auto;font-family:monospace;font-size:14px;line-height:1.7" id="st"></div>`;
+  const el = document.getElementById("st");
+  const stLines = [];
+  const say = (ok, msg) => {
+    el.innerHTML += `<div style="color:${ok ? "#067a53" : "#b42318"}">${ok ? "PASS" : "FAIL"} — ${msg}</div>`;
+    stLines.push((ok ? "PASS" : "FAIL") + " — " + msg);
+  };
+  /* on localhost the results also POST to the dev server so headless test
+     runs can read them from the server log; a no-op in production */
+  const isLocal = location.hostname === "localhost" || location.hostname === "127.0.0.1";
+  const report = () => isLocal ? fetch("/selftest-result", { method: "POST", body: stLines.join(" | ") }).catch(() => {}) : Promise.resolve();
+  const ping = (m) => isLocal ? fetch("/selftest-result", { method: "POST", body: "step: " + m }).catch(() => {}) : Promise.resolve();
+  window.onerror = (m, s, l) => ping("window.onerror " + m + " @" + l);
+  window.onunhandledrejection = (e) => ping("unhandled rejection: " + (e.reason && e.reason.message || e.reason));
+  el.innerHTML = "<b>MedLens Vision — pipeline self-test</b><br>loading OpenCV…<br>";
+  try {
+    const t0 = performance.now();
+    await ping("start, warming vision worker");
+    getVisionWorker();
+    el.innerHTML += `vision worker starting…<br><br>`;
+    /* test 1: skewed label must be found and deskewed */
+    const v1 = await visionAnalyze(stMakeLabel());
+    await ping("test1 done");
+    say(v1.deskewed, `label deskew: deskewed=${v1.deskewed} (${v1.ms} ms)`);
+    say(!!v1.labelDataUrl, `rectified label crop produced: ${!!v1.labelDataUrl}`);
+    /* test 2: 10-cell blister with 3 pressed out */
+    const v2 = await visionAnalyze(stMakeBlister(10, 3));
+    await ping("test2 done");
+    const p = v2.pills;
+    say(!!p, `blister detected: ${!!p}`);
+    if (p) {
+      say(p.total >= 9 && p.total <= 11, `cell count ${p.total} (expect 10 ±1)`);
+      say(p.empty >= 2 && p.empty <= 4, `empty count ${p.empty} (expect 3 ±1)`);
+      el.innerHTML += `<img src="${v2.overlayDataUrl}" style="max-width:100%;border-radius:8px;margin-top:8px">`;
+    }
+    /* test 3: an all-intact blister must NOT report empties */
+    const v3 = await visionAnalyze(stMakeBlister(10, 0));
+    say(!v3.pills || v3.pills.empty <= 1, `all-intact pack: empty=${v3.pills ? v3.pills.empty : "n/a"} (expect ≤1)`);
+    /* test 4: a 45°-rotated (diamond) label — the orientation that broke
+       the old corner ordering — must still deskew without a garbage warp */
+    const c4 = document.createElement("canvas"); c4.width = 800; c4.height = 600;
+    const g4 = c4.getContext("2d");
+    g4.fillStyle = "#6b7686"; g4.fillRect(0, 0, 800, 600);
+    g4.beginPath(); g4.moveTo(400, 80); g4.lineTo(700, 300); g4.lineTo(400, 520); g4.lineTo(100, 300);
+    g4.closePath(); g4.fillStyle = "#f5f6f8"; g4.fill();
+    g4.save(); g4.translate(400, 300); g4.rotate(Math.PI / 4);
+    g4.fillStyle = "#1c2a44"; g4.font = "700 40px sans-serif"; g4.fillText("IBUPROFEN", -130, 0);
+    g4.restore();
+    const v4 = await visionAnalyze(c4);
+    say(v4.deskewed && !!v4.labelDataUrl, `45° diamond label deskewed cleanly: ${v4.deskewed}`);
+    el.innerHTML += "<br>done.";
+    await report();
+  } catch (e) {
+    say(false, "self-test crashed: " + (e && e.message));
+    await report();
+  }
+}
+if (new URLSearchParams(location.search).get("selftest") === "1") {
+  addEventListener("load", runSelfTest);
+}
+</script>
+</body>
+</html>

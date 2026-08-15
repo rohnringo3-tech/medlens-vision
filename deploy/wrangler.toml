@@ -1,0 +1,7 @@
+name = "medlens-vision"
+main = "worker.js"
+compatibility_date = "2026-08-01"
+
+[assets]
+directory = "dist"
+binding = "ASSETS"
