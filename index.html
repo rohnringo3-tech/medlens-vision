@@ -577,7 +577,7 @@
     <div class="hero">
       <div class="eyebrow">AI for human health</div>
       <h1>Understand any medicine <span>in seconds</span></h1>
-      <p class="sub">Photograph a medicine box or pill sheet. Get a plain-language explanation, cross-checked against official drug data.</p>
+      <p class="sub">Photograph a medicine box or pill sheet. Computer vision on your phone straightens the label and counts your pills — then AI explains it in plain language, cross-checked against official drug data.</p>
     </div>
 
     <div class="scanzone" id="scanzone">
@@ -596,8 +596,8 @@
 
     <div class="steps">
       <div class="step"><div class="num">01</div><div><div class="t">Snap the label</div><div class="d">Box, bottle or pill sheet</div></div></div>
-      <div class="step"><div class="num">02</div><div><div class="t">AI reads it</div><div class="d">Name, strength and purpose</div></div></div>
-      <div class="step"><div class="num">03</div><div><div class="t">Facts, checked</div><div class="d">Name matched in openFDA's label database</div></div></div>
+      <div class="step"><div class="num">02</div><div><div class="t">Vision counts &amp; straightens</div><div class="d">OpenCV on your phone — finds the label, counts the pills, ~200 ms, no cloud</div></div></div>
+      <div class="step"><div class="num">03</div><div><div class="t">AI explains, facts checked</div><div class="d">Plain-language card, name matched in openFDA</div></div></div>
     </div>
 
     <input type="file" id="fileInput" accept="image/*" capture="environment" class="hidden">
@@ -1243,7 +1243,7 @@ function fileToDataURL(file) {
   });
 }
 
-/* ================= On-device vision (OpenCV 5, WASM) =================
+/* ================= On-device vision (OpenCV.js 4.x WASM — 5.x single-threaded build is the planned upgrade; the official 5.x pthreads build hard-hangs browsers without cross-origin isolation) =================
    The competition rule we build around: OpenCV must do SUBSTANTIVE work.
    Here it does three jobs no LLM can do reliably or offline:
    1. find the label, un-skew it (perspective correction) and boost contrast
