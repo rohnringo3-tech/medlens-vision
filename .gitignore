@@ -8,6 +8,8 @@ node_modules/
 deploy/.wrangler/
 # the broken threaded OpenCV 5 build kept for the upgrade attempt
 opencv5-threaded.js.bak
+# the 4.x docs build we shipped before the self-built 5.x
+opencv4-docs.js.bak
 
 # OpenCV 5 build workspace (huge, reproducible via build-opencv5.ps1)
 opencv5-build/

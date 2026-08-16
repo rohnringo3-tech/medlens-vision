@@ -2,7 +2,7 @@
 // stalled wifi falls back to cache fast), cache-first for immutable Google Fonts.
 // opencv.js (16 MB wasm) is cached at install so the vision layer works offline;
 // allSettled means a slow first install still succeeds without it.
-const CACHE = "medlens-vision-v4";
+const CACHE = "medlens-vision-v5";
 /* opencv.js is NOT in SHELL: the idle warm-up fetches it through the SW route
    below, which caches it on first success — one download total instead of the
    install and the worker racing two parallel 11MB downloads on 3G. */

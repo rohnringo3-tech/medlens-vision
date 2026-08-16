@@ -1243,7 +1243,7 @@ function fileToDataURL(file) {
   });
 }
 
-/* ================= On-device vision (OpenCV.js 4.x WASM — 5.x single-threaded build is the planned upgrade; the official 5.x pthreads build hard-hangs browsers without cross-origin isolation) =================
+/* ================= On-device vision (OpenCV 5, WASM — self-built single-threaded from the 5.x branch via build-opencv5.ps1, because the official docs pthreads build hard-hangs browsers without cross-origin isolation) =================
    The competition rule we build around: OpenCV must do SUBSTANTIVE work.
    Here it does three jobs no LLM can do reliably or offline:
    1. find the label, un-skew it (perspective correction) and boost contrast
