@@ -9,14 +9,21 @@ let ready = false, failed = false;
 const pending = []; // {id, imageData} records — NOT closures, so buffers stay collectable
 
 (function waitForCv() {
-  /* emscripten's fake thenable must never be awaited — poll for cv.Mat,
+  /* emscripten's fake thenable must never be awaited — poll for the module,
      and give init a deadline: a failed WASM load must answer every queued
-     scan with an error instead of holding its ImageData forever */
+     scan with an error instead of holding its ImageData forever.
+     Builds differ in WHERE the API lands: docs builds populate `cv`,
+     raw build_js output populates the emscripten `Module` global — accept both. */
   if (typeof cv === "function" && !cv.Mat) { try { cv = cv(); } catch {} }
   const t0 = Date.now();
   const iv = setInterval(() => {
-    if (typeof cv === "object" && cv && cv.Mat) {
+    let m = null;
+    if (typeof cv === "object" && cv && cv.Mat) m = cv;
+    else if (typeof Module === "object" && Module && Module.Mat) m = Module;
+    if (m) {
       clearInterval(iv);
+      try { cv = m; } catch {}       // normalize: the pipeline below talks to `cv`
+      try { self.cv = m; } catch {}
       ready = true;
       postMessage({ type: "ready" });
       pending.splice(0).forEach(p => run(p.id, p.imageData));

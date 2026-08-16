@@ -1174,16 +1174,20 @@ async function scanFromDataUrl(dataUrl) {
     if (gen !== scanGen) return;
     $("previewImg").src = dataUrl;
     show("viewAnalyzing");
-    startStages(VISION_STAGES);
     /* Stage 0 — on-device vision. Optional by design: an old phone that cannot
-       run the wasm still gets the full AI scan, just without the measurements. */
+       run the wasm still gets the full AI scan, just without the measurements.
+       The one-time engine download gets its own honest stage + timeout so a
+       slow connection never eats the analysis budget. */
     let vision = null;
     try {
-      const img = await dataUrlToImage(dataUrl);
-      vision = await Promise.race([
-        visionAnalyze(img),
-        new Promise((_, rej) => setTimeout(() => rej(new Error("vision timeout")), 25000))
-      ]);
+      if (!visionIsReady) $("stageText").textContent = "Downloading the vision engine (one-time)";
+      const engineReady = await visionWaitReady(90000);
+      if (gen !== scanGen) return;
+      startStages(VISION_STAGES);
+      if (engineReady) {
+        const img = await dataUrlToImage(dataUrl);
+        vision = await visionAnalyze(img);
+      }
     } catch (e) { console.warn("vision layer skipped:", e); }
     if (gen !== scanGen) return;
     if (vision && vision.overlayDataUrl) $("previewImg").src = vision.overlayDataUrl;
@@ -1253,12 +1257,17 @@ function fileToDataURL(file) {
    3. describe pill colour/shape numerically as hints for identification.
    Everything runs in the browser, inside a Web Worker so the UI never janks;
    the 11 MB wasm loads once and is cached by the service worker. */
-let visionWorker = null, visionSeq = 0;
+let visionWorker = null, visionSeq = 0, visionIsReady = false;
+let visionReadyResolve = null;
+let visionReadyPromise = null;
 const visionCalls = new Map();
 function getVisionWorker() {
   if (visionWorker) return visionWorker;
+  visionIsReady = false;
+  visionReadyPromise = new Promise(res => { visionReadyResolve = res; });
   visionWorker = new Worker("vision-worker.js");
   visionWorker.onmessage = (e) => {
+    if (e.data.type === "ready") { visionIsReady = true; if (visionReadyResolve) visionReadyResolve(true); return; }
     if (e.data.type !== "result") return;
     const call = visionCalls.get(e.data.id);
     if (!call) return;
@@ -1268,10 +1277,22 @@ function getVisionWorker() {
   visionWorker.onerror = () => {
     for (const c of visionCalls.values()) c.reject(new Error("vision worker crashed"));
     visionCalls.clear();
+    if (visionReadyResolve) visionReadyResolve(false);
     try { visionWorker.terminate(); } catch {}
     visionWorker = null; // next scan gets a fresh worker instead of a dead one
   };
   return visionWorker;
+}
+/* Wait for the worker's wasm to be ready — on a slow first visit the 14MB
+   engine download must not eat the analysis timeout. Resolves false on
+   timeout/crash so callers can skip vision gracefully. */
+function visionWaitReady(timeoutMs) {
+  getVisionWorker();
+  if (visionIsReady) return Promise.resolve(true);
+  return Promise.race([
+    visionReadyPromise,
+    new Promise(res => setTimeout(() => res(false), timeoutMs)),
+  ]);
 }
 /* Warm the worker in the background: the 11 MB wasm compiles OFF the main
    thread, so the page never janks - skipped when the user asked to save data. */
@@ -1981,8 +2002,10 @@ async function runSelfTest() {
   try {
     const t0 = performance.now();
     await ping("start, warming vision worker");
-    getVisionWorker();
-    el.innerHTML += `vision worker starting…<br><br>`;
+    el.innerHTML += `vision worker starting — first visit downloads the 14 MB OpenCV 5 engine…<br>`;
+    const engineOk = await visionWaitReady(120000);
+    if (!engineOk) throw new Error("vision engine did not become ready in 120s — check your connection and reload");
+    el.innerHTML += `engine ready in ${Math.round(performance.now() - t0)} ms<br><br>`;
     /* test 1: skewed label must be found and deskewed */
     const v1 = await visionAnalyze(stMakeLabel());
     await ping("test1 done");
