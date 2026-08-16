@@ -1,0 +1,465 @@
+{
+	"sources" : 
+	[
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/photo/include/opencv2/photo.hpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_photo",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/photo/include/opencv2/photo/ccm.hpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_photo",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/photo/include/opencv2/photo/cuda.hpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_photo",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/photo/include/opencv2/photo/legacy/constants_c.h",
+			"labels" : 
+			[
+				"Main",
+				"opencv_photo",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/photo/include/opencv2/photo/photo.hpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_photo",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/photo/include/opencv2/photo/segmentation.hpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_photo",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/photo/src/align.cpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_photo",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/photo/src/calibrate.cpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_photo",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/photo/src/ccm/ccm.cpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_photo",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/photo/src/ccm/color.cpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_photo",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/photo/src/ccm/colorspace.cpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_photo",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/photo/src/ccm/distance.cpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_photo",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/photo/src/ccm/illumobserver.cpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_photo",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/photo/src/ccm/linearize.cpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_photo",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/photo/src/ccm/operations.cpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_photo",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/photo/src/ccm/utils.cpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_photo",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/photo/src/chromatic_aberration_correction.cpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_photo",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/photo/src/contrast_preserve.cpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_photo",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/photo/src/denoise_tvl1.cpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_photo",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/photo/src/denoising.cpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_photo",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/photo/src/denoising.cuda.cpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_photo",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/photo/src/hdr_common.cpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_photo",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/photo/src/inpaint.cpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_photo",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/photo/src/intelligent_scissors.cpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_photo",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/photo/src/merge.cpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_photo",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/photo/src/npr.cpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_photo",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/photo/src/seamless_cloning.cpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_photo",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/photo/src/seamless_cloning_impl.cpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_photo",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/photo/src/tonemap.cpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_photo",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/photo/src/opencl/nlmeans.cl",
+			"labels" : 
+			[
+				"Main",
+				"opencv_photo",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/build_js/modules/photo/opencl_kernels_photo.cpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_photo",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/build_js/modules/photo/opencl_kernels_photo.hpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_photo",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/photo/src/arrays.hpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_photo",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/photo/src/ccm/color.hpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_photo",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/photo/src/ccm/colorspace.hpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_photo",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/photo/src/ccm/distance.hpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_photo",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/photo/src/ccm/illumobserver.hpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_photo",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/photo/src/ccm/linearize.hpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_photo",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/photo/src/ccm/operations.hpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_photo",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/photo/src/ccm/utils.hpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_photo",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/photo/src/contrast_preserve.hpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_photo",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/photo/src/fast_nlmeans_denoising_invoker.hpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_photo",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/photo/src/fast_nlmeans_denoising_invoker_commons.hpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_photo",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/photo/src/fast_nlmeans_denoising_opencl.hpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_photo",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/photo/src/fast_nlmeans_multi_denoising_invoker.hpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_photo",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/photo/src/hdr_common.hpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_photo",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/photo/src/npr.hpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_photo",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/photo/src/precomp.hpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_photo",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/photo/src/seamless_cloning.hpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_photo",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/build_js/cvconfig.h"
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/build_js/opencv2/opencv_modules.hpp"
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/build_js/modules/photo/opencl_kernels_photo.cpp.rule"
+		}
+	],
+	"target" : 
+	{
+		"labels" : 
+		[
+			"Main",
+			"opencv_photo",
+			"Module"
+		],
+		"name" : "opencv_photo"
+	}
+}

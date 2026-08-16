@@ -1,0 +1,735 @@
+{
+	"sources" : 
+	[
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/geometry/include/opencv2/geometry.hpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_geometry",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/geometry/include/opencv2/geometry/2d.hpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_geometry",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/geometry/include/opencv2/geometry/3d.hpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_geometry",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/geometry/include/opencv2/geometry/detail/gcgraph.hpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_geometry",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/geometry/include/opencv2/geometry/detail/optimizer.hpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_geometry",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/geometry/include/opencv2/geometry/mst.hpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_geometry",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/geometry/include/opencv2/geometry/segment.hpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_geometry",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/geometry/src/ap3p.cpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_geometry",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/geometry/src/approx.cpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_geometry",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/geometry/src/calibration_base.cpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_geometry",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/geometry/src/convhull.cpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_geometry",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/geometry/src/epnp.cpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_geometry",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/geometry/src/fisheye.cpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_geometry",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/geometry/src/five-point.cpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_geometry",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/geometry/src/fundam.cpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_geometry",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/geometry/src/geometry.cpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_geometry",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/geometry/src/homography_decomp.cpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_geometry",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/geometry/src/intersection.cpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_geometry",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/geometry/src/ippe.cpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_geometry",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/geometry/src/levmarq.cpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_geometry",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/geometry/src/linefit.cpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_geometry",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/geometry/src/main.cpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_geometry",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/geometry/src/matchcontours.cpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_geometry",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/geometry/src/min_enclosing_convex_polygon.cpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_geometry",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/geometry/src/min_enclosing_triangle.cpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_geometry",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/geometry/src/moments.cpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_geometry",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/geometry/src/mst.cpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_geometry",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/geometry/src/p3p.cpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_geometry",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/geometry/src/pinhole.cpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_geometry",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/geometry/src/polynom_solver.cpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_geometry",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/geometry/src/ptcloud/normal_estimation.cpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_geometry",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/geometry/src/ptcloud/ptcloud_utils.cpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_geometry",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/geometry/src/ptcloud/region_growing_3d.cpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_geometry",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/geometry/src/ptcloud/sac_segmentation.cpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_geometry",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/geometry/src/ptcloud/sampling.cpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_geometry",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/geometry/src/ptsetreg.cpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_geometry",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/geometry/src/rho.cpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_geometry",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/geometry/src/rotcalipers.cpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_geometry",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/geometry/src/shapedescr.cpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_geometry",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/geometry/src/solvepnp.cpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_geometry",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/geometry/src/sqpnp.cpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_geometry",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/geometry/src/subdivision2d.cpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_geometry",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/geometry/src/triangulate.cpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_geometry",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/geometry/src/usac/bundle.cpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_geometry",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/geometry/src/usac/degeneracy.cpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_geometry",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/geometry/src/usac/dls_solver.cpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_geometry",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/geometry/src/usac/essential_solver.cpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_geometry",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/geometry/src/usac/estimator.cpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_geometry",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/geometry/src/usac/fundamental_solver.cpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_geometry",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/geometry/src/usac/gamma_values.cpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_geometry",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/geometry/src/usac/homography_solver.cpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_geometry",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/geometry/src/usac/local_optimization.cpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_geometry",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/geometry/src/usac/plane_solver.cpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_geometry",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/geometry/src/usac/pnp_solver.cpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_geometry",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/geometry/src/usac/quality.cpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_geometry",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/geometry/src/usac/ransac_solvers.cpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_geometry",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/geometry/src/usac/sampler.cpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_geometry",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/geometry/src/usac/sphere_solver.cpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_geometry",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/geometry/src/usac/termination.cpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_geometry",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/geometry/src/usac/utils.cpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_geometry",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/geometry/src/opencl/moments.cl",
+			"labels" : 
+			[
+				"Main",
+				"opencv_geometry",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/build_js/modules/geometry/opencl_kernels_geometry.cpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_geometry",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/build_js/modules/geometry/opencl_kernels_geometry.hpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_geometry",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/geometry/src/ap3p.h",
+			"labels" : 
+			[
+				"Main",
+				"opencv_geometry",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/geometry/src/distortion_model.hpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_geometry",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/geometry/src/epnp.h",
+			"labels" : 
+			[
+				"Main",
+				"opencv_geometry",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/geometry/src/hal_replacement.hpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_geometry",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/geometry/src/ippe.hpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_geometry",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/geometry/src/p3p.h",
+			"labels" : 
+			[
+				"Main",
+				"opencv_geometry",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/geometry/src/pcc.h",
+			"labels" : 
+			[
+				"Main",
+				"opencv_geometry",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/geometry/src/polynom_solver.h",
+			"labels" : 
+			[
+				"Main",
+				"opencv_geometry",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/geometry/src/precomp.hpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_geometry",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/geometry/src/ptcloud/ptcloud_utils.hpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_geometry",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/geometry/src/ptcloud/ptcloud_wrapper.hpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_geometry",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/geometry/src/ptcloud/region_growing_3d.hpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_geometry",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/geometry/src/ptcloud/sac_segmentation.hpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_geometry",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/geometry/src/rho.h",
+			"labels" : 
+			[
+				"Main",
+				"opencv_geometry",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/geometry/src/sqpnp.hpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_geometry",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/geometry/src/usac.hpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_geometry",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/build_js/cvconfig.h"
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/build_js/opencv2/opencv_modules.hpp"
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/build_js/modules/geometry/opencl_kernels_geometry.cpp.rule"
+		}
+	],
+	"target" : 
+	{
+		"labels" : 
+		[
+			"Main",
+			"opencv_geometry",
+			"Module"
+		],
+		"name" : "opencv_geometry"
+	}
+}

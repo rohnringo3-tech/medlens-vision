@@ -1,0 +1,105 @@
+{
+	"sources" : 
+	[
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/stereo/include/opencv2/stereo.hpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_stereo",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/stereo/src/main.cpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_stereo",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/stereo/src/stereo_geom.cpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_stereo",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/stereo/src/stereobm.cpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_stereo",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/stereo/src/stereosgbm.cpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_stereo",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/stereo/src/opencl/stereobm.cl",
+			"labels" : 
+			[
+				"Main",
+				"opencv_stereo",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/build_js/modules/stereo/opencl_kernels_stereo.cpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_stereo",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/build_js/modules/stereo/opencl_kernels_stereo.hpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_stereo",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/stereo/src/precomp.hpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_stereo",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/build_js/cvconfig.h"
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/build_js/opencv2/opencv_modules.hpp"
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/build_js/modules/stereo/opencl_kernels_stereo.cpp.rule"
+		}
+	],
+	"target" : 
+	{
+		"labels" : 
+		[
+			"Main",
+			"opencv_stereo",
+			"Module"
+		],
+		"name" : "opencv_stereo"
+	}
+}

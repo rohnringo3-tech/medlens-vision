@@ -1,0 +1,111 @@
+{
+	"sources" : 
+	[
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/calib/include/opencv2/calib.hpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_calib",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/calib/include/opencv2/calib3d.hpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_calib",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/calib/src/calibration.cpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_calib",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/calib/src/calibration_handeye.cpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_calib",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/calib/src/fisheye.cpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_calib",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/calib/src/main.cpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_calib",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/calib/src/multiview_calibration.cpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_calib",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/calib/src/distortion_model.hpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_calib",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/calib/src/fisheye.hpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_calib",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/calib/src/precomp.hpp",
+			"labels" : 
+			[
+				"Main",
+				"opencv_calib",
+				"Module"
+			]
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/build_js/cvconfig.h"
+		},
+		{
+			"file" : "C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/build_js/opencv2/opencv_modules.hpp"
+		}
+	],
+	"target" : 
+	{
+		"labels" : 
+		[
+			"Main",
+			"opencv_calib",
+			"Module"
+		],
+		"name" : "opencv_calib"
+	}
+}

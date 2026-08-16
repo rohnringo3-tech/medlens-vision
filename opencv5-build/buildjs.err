@@ -1,0 +1,95 @@
+Args: Namespace(build_dir='C:\\Users\\LEGION\\Desktop\\MedLens Vision\\opencv5-build\\build_js', opencv_dir='C:\\Users\\LEGION\\Desktop\\MedLens Vision\\opencv5-build\\opencv', emscripten_dir='C:\\Users\\LEGION\\Desktop\\MedLens Vision\\opencv5-build\\emsdk\\upstream\\emscripten', build_wasm=False, disable_wasm=False, disable_single_file=False, threads=False, simd=False, build_test=False, build_perf=False, build_doc=False, build_loader=False, clean_build_dir=False, skip_config=False, config_only=False, enable_exception=False, cmake_option=['-GNinja'], build_flags=None, build_wasm_intrin_test=False, config=None, webnn=False, extra_modules=None)
+Check dir C:\Users\LEGION\Desktop\MedLens Vision\opencv5-build\build_js (create: True, clean: False)
+Check dir C:\Users\LEGION\Desktop\MedLens Vision\opencv5-build\opencv (create: False, clean: False)
+Check dir C:\Users\LEGION\Desktop\MedLens Vision\opencv5-build\emsdk\upstream\emscripten (create: False, clean: False)
+=====
+===== Config OpenCV.js build for default target
+=====
+Executing: ['cmake', '-DPYTHON_DEFAULT_EXECUTABLE=C:\\Users\\LEGION\\Desktop\\MedLens Vision\\opencv5-build\\emsdk\\python\\3.13.3_64bit\\python.exe', '-DENABLE_PIC=FALSE', '-DCMAKE_BUILD_TYPE=Release', "-DCPU_BASELINE=''", '-DCMAKE_INSTALL_PREFIX=/usr/local', "-DCPU_DISPATCH=''", '-DCV_TRACE=OFF', '-DBUILD_SHARED_LIBS=OFF', '-DWITH_1394=OFF', '-DWITH_ADE=OFF', '-DWITH_VTK=OFF', '-DWITH_EIGEN=OFF', '-DWITH_FFMPEG=OFF', '-DWITH_GSTREAMER=OFF', '-DWITH_GTK=OFF', '-DWITH_GTK_2_X=OFF', '-DWITH_IPP=OFF', '-DWITH_AVIF=OFF', '-DWITH_JASPER=OFF', '-DWITH_JPEG=OFF', '-DWITH_WEBP=OFF', '-DWITH_OPENEXR=OFF', '-DWITH_OPENJPEG=OFF', '-DWITH_OPENGL=OFF', '-DWITH_OPENNI=OFF', '-DWITH_OPENNI2=OFF', '-DWITH_PNG=OFF', '-DWITH_TBB=OFF', '-DWITH_TIFF=OFF', '-DWITH_V4L=OFF', '-DWITH_OPENCL=OFF', '-DWITH_OPENCL_SVM=OFF', '-DWITH_OPENCLAMDFFT=OFF', '-DWITH_OPENCLAMDBLAS=OFF', '-DWITH_GPHOTO2=OFF', '-DWITH_LAPACK=OFF', '-DWITH_ITT=OFF', '-DBUILD_ZLIB=ON', '-DBUILD_opencv_apps=OFF', '-DBUILD_opencv_3d=ON', '-DBUILD_opencv_dnn=ON', '-DBUILD_opencv_features=ON', '-DBUILD_opencv_flann=ON', '-DBUILD_opencv_gapi=OFF', '-DBUILD_opencv_ml=OFF', '-DBUILD_opencv_photo=ON', '-DBUILD_opencv_imgcodecs=OFF', '-DBUILD_opencv_shape=OFF', '-DBUILD_opencv_videoio=OFF', '-DBUILD_opencv_videostab=OFF', '-DBUILD_opencv_highgui=OFF', '-DBUILD_opencv_superres=OFF', '-DBUILD_opencv_stitching=OFF', '-DBUILD_opencv_java=OFF', '-DBUILD_opencv_js=ON', '-DBUILD_opencv_python3=OFF', '-DBUILD_EXAMPLES=ON', '-DBUILD_PACKAGE=OFF', '-DBUILD_TESTS=ON', '-DBUILD_PERF_TESTS=ON', '-GNinja', "-DCMAKE_TOOLCHAIN_FILE='C:\\Users\\LEGION\\Desktop\\MedLens Vision\\opencv5-build\\emsdk\\upstream\\emscripten\\cmake\\Modules\\Platform\\Emscripten.cmake'", '-DBUILD_DOCS=OFF', '-DWITH_PTHREADS_PF=OFF', '-DCV_ENABLE_INTRINSICS=OFF', '-DBUILD_WASM_INTRIN_TESTS=OFF', '-DCMAKE_C_FLAGS=\'-s SINGLE_FILE=1 -s USE_PTHREADS=0 -s EXPORTED_FUNCTIONS="[\'_malloc\', \'_free\']"\'', '-DCMAKE_CXX_FLAGS=\'-s SINGLE_FILE=1 -s USE_PTHREADS=0 -s EXPORTED_FUNCTIONS="[\'_malloc\', \'_free\']"\'', 'C:\\Users\\LEGION\\Desktop\\MedLens Vision\\opencv5-build\\opencv']
+CMake Warning (deprecated) at CMakeLists.txt:28 (cmake_policy):
+  The OLD behavior for policy CMP0146 will be removed from a future version
+  of CMake.
+
+  The cmake-policies(7) manual explains that the OLD behaviors of all
+  policies are deprecated and that a policy should be set to OLD only under
+  specific short-term circumstances.  Projects should be ported to the NEW
+  behavior and not rely on setting a policy to OLD.
+This warning is for project developers.  Use -Wno-author or -Wno-deprecated
+to suppress it.
+
+CMake Warning (deprecated) at CMakeLists.txt:32 (cmake_policy):
+  The OLD behavior for policy CMP0148 will be removed from a future version
+  of CMake.
+
+  The cmake-policies(7) manual explains that the OLD behaviors of all
+  policies are deprecated and that a policy should be set to OLD only under
+  specific short-term circumstances.  Projects should be ported to the NEW
+  behavior and not rely on setting a policy to OLD.
+This warning is for project developers.  Use -Wno-author or -Wno-deprecated
+to suppress it.
+
+CMake Warning (policy) at modules/python/bindings/CMakeLists.txt:49 (ocv_list_filterout):
+  Policy CMP0219 is not set: Macro invocations preserve backslashes in
+  arguments.  Run "cmake --help-policy CMP0219" for policy details.  Use the
+  cmake_policy command to set the policy and suppress this warning.
+
+  Command "ocv_list_filterout" called with arguments containing backslashes.
+
+  Since the policy is not set, backslashes in the arguments:
+
+   "modules/.*\\.h$"
+
+  will be interpreted as escape sequences for compatibility.
+
+  Set the policy to NEW to instead pass
+
+   "modules/.*\\\\.h$"
+
+  so that argument parsing will preserve the original values.
+This warning is for project developers.  Use -Wno-author or -Wno-policy to
+suppress it.
+
+=====
+===== Building OpenCV.js
+=====
+Executing: ['make', '-j', '32', 'opencv.js']
+Traceback (most recent call last):
+  File "C:\Users\LEGION\Desktop\MedLens Vision\opencv5-build\opencv\platforms\js\build_js.py", line 19, in execute
+    retcode = subprocess.call(cmd, shell=shell, env=env)
+  File "C:\Users\LEGION\Desktop\MedLens Vision\opencv5-build\emsdk\python\3.13.3_64bit\Lib\subprocess.py", line 395, in call
+    with Popen(*popenargs, **kwargs) as p:
+         ~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\LEGION\Desktop\MedLens Vision\opencv5-build\emsdk\python\3.13.3_64bit\Lib\subprocess.py", line 1039, in __init__
+    self._execute_child(args, executable, preexec_fn, close_fds,
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                        pass_fds, cwd, env,
+                        ^^^^^^^^^^^^^^^^^^^
+    ...<5 lines>...
+                        gid, gids, uid, umask,
+                        ^^^^^^^^^^^^^^^^^^^^^^
+                        start_new_session, process_group)
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\LEGION\Desktop\MedLens Vision\opencv5-build\emsdk\python\3.13.3_64bit\Lib\subprocess.py", line 1551, in _execute_child
+    hp, ht, pid, tid = _winapi.CreateProcess(executable, args,
+                       ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+                             # no special security
+                             ^^^^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+                             cwd,
+                             ^^^^
+                             startupinfo)
+                             ^^^^^^^^^^^^
+FileNotFoundError: [WinError 2] The system cannot find the file specified
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\LEGION\Desktop\MedLens Vision\opencv5-build\opencv\platforms\js\build_js.py", line 309, in <module>
+    builder.build_opencvjs()
+    ~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\LEGION\Desktop\MedLens Vision\opencv5-build\opencv\platforms\js\build_js.py", line 210, in build_opencvjs
+    execute(["make", "-j", str(multiprocessing.cpu_count()), "opencv.js"])
+    ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\LEGION\Desktop\MedLens Vision\opencv5-build\opencv\platforms\js\build_js.py", line 25, in execute
+    raise Fail("Execution failed: %d / %s" % (e.errno, e.strerror))
+Fail: Execution failed: 2 / The system cannot find the file specified

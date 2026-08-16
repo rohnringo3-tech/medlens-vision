@@ -1332,6 +1332,8 @@ async function visionAnalyze(el) {
     pills: result.pills,
     colorName: result.colorName,
     ms: result.ms,
+    rectifiedCount: result.rectifiedCount,
+    dbg: result.dbg,
     labelDataUrl: result.labelImage ? imageDataToDataUrl(result.labelImage, 0.9) : null,
     overlayDataUrl: result.overlayImage ? imageDataToDataUrl(result.overlayImage, 0.8) : null,
   };
@@ -2011,6 +2013,46 @@ async function runSelfTest() {
     g4.restore();
     const v4 = await visionAnalyze(c4);
     say(v4.deskewed && !!v4.labelDataUrl, `45° diamond label deskewed cleanly: ${v4.deskewed}`);
+    /* test 5: CAPSULES (oblong pills) — the shape HoughCircles is blind to.
+       2x4 grid, 2 pressed out; detector v2's contour path must catch them. */
+    const c5 = document.createElement("canvas"); c5.width = 760; c5.height = 420;
+    const g5 = c5.getContext("2d");
+    g5.fillStyle = "#9aa3b0"; g5.fillRect(0, 0, 760, 420);
+    g5.fillStyle = "#c4cad3"; g5.fillRect(40, 40, 680, 340);
+    let made5 = 0;
+    for (let row = 0; row < 2; row++) for (let col = 0; col < 4; col++) {
+      const cx = 150 + col * 160, cy = 130 + row * 170;
+      const pressed = made5 === 1 || made5 === 6; // one per row, different columns
+      if (pressed) {
+        g5.save(); g5.translate(cx, cy);
+        g5.beginPath(); g5.ellipse(0, 0, 62, 30, 0, 0, Math.PI * 2);
+        g5.fillStyle = "#3a3f47"; g5.fill();
+        for (let s = 0; s < 220; s++) {
+          const a = Math.random() * Math.PI * 2, dd = Math.random();
+          g5.fillStyle = Math.random() > 0.5 ? "#7d8593" : "#20242a";
+          g5.fillRect(Math.cos(a) * dd * 58, Math.sin(a) * dd * 26, 3, 3);
+        }
+        g5.restore();
+      } else {
+        const grad5 = g5.createLinearGradient(cx - 60, cy - 28, cx + 60, cy + 28);
+        grad5.addColorStop(0, "#ffffff"); grad5.addColorStop(1, "#e2e6ec");
+        g5.beginPath(); g5.ellipse(cx, cy, 60, 28, 0, 0, Math.PI * 2);
+        g5.fillStyle = grad5; g5.fill();
+        g5.strokeStyle = "#a9b1bc"; g5.lineWidth = 2; g5.stroke();
+      }
+      made5++;
+    }
+    getVisionWorker().postMessage({ type: "debug-art" });
+    const v5 = await visionAnalyze(c5);
+    const p5 = v5.pills;
+    const { art: art5, ...dbgRest } = v5.dbg || {};
+    await ping("capsule debug: " + JSON.stringify({ deskewed: v5.deskewed, rectified: v5.rectifiedCount, dbg: dbgRest, pills: p5 && { total: p5.total, full: p5.full, empty: p5.empty } }));
+    if (art5) { await ping("GRAY:\n" + art5.gray); await ping("BIN:\n" + art5.bin); }
+    say(!!p5, `capsule sheet detected: ${!!p5}`);
+    if (p5) {
+      say(p5.total >= 7 && p5.total <= 9, `capsule count ${p5.total} (expect 8 ±1)`);
+      say(p5.empty === null || (p5.empty >= 1 && p5.empty <= 3), `capsule empties ${p5.empty} (expect 2 ±1 or honest null)`);
+    }
     el.innerHTML += "<br>done.";
     await report();
   } catch (e) {

@@ -1,0 +1,11 @@
+Adding directories to PATH:
+PATH += C:\Users\LEGION\Desktop\MedLens Vision\opencv5-build\emsdk
+PATH += C:\Users\LEGION\Desktop\MedLens Vision\opencv5-build\emsdk\upstream\emscripten
+
+Setting environment variables:
+PATH = C:\Users\LEGION\Desktop\MedLens Vision\opencv5-build\emsdk;C:\Users\LEGION\Desktop\MedLens Vision\opencv5-build\emsdk\upstream\emscripten;C:\Program Files (x86)\Common Files\Intel\Shared Libraries\redist\intel64_win\compiler;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files\dotnet\;C:\Program Files\NVIDIA Corporation\NVIDIA NvDLISR;C:\Program Files\Git\cmd;C:\Program Files\nodejs\;C:\Program Files\GitHub CLI\;C:\Program Files\CMake\bin;C:\Users\LEGION\AppData\Local\Programs\Python\Python311\Scripts\;C:\Users\LEGION\AppData\Local\Programs\Python\Python311\;C:\Users\LEGION\AppData\Local\hermes\hermes-agent\venv\Scripts;C:\Users\LEGION\AppData\Local\hermes\bin;C:\Users\LEGION\AppData\Local\Microsoft\WindowsApps;C:\Users\LEGION\AppData\Local\Programs\Microsoft VS Code\bin;C:\Users\LEGION\AppData\Local\hermes\node;C:\Users\LEGION\AppData\Local\Microsoft\WinGet\Packages\BurntSushi.ripgrep.MSVC_Microsoft.Winget.Source_8wekyb3d8bbwe\ripgrep-15.2.0-x86_64-pc-windows-msvc;C:\Users\LEGION\AppData\Local\Microsoft\WinGet\Packages\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-8.1.2-full_build\bin;C:\Users\LEGION\AppData\Roaming\npm;C:\Users\LEGION\AppData\Local\Programs\Ollama;C:\Program Files (x86)\Nmap;C:\Users\LEGION\AppData\Local\Microsoft\WinGet\Packages\Ninja-build.Ninja_Microsoft.Winget.Source_8wekyb3d8bbwe;
+EMSDK = C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/emsdk
+EMSDK_NODE = C:\Users\LEGION\Desktop\MedLens Vision\opencv5-build\emsdk\node\24.19.0_64bit\node.exe
+EMSDK_PYTHON = C:\Users\LEGION\Desktop\MedLens Vision\opencv5-build\emsdk\python\3.13.3_64bit\python.exe
+Clearing existing environment variable: EMSDK_PY
+The changes made to environment variables only apply to the currently running shell instance. Use the 'emsdk_env.bat' to re-enter this environment later, or if you'd like to register this environment permanently, rerun this command with the option --permanent.

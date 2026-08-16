@@ -1,0 +1,362 @@
+Re-run cmake no build system arguments
+-- Looking for a ASM compiler
+-- Looking for a ASM compiler - C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/emsdk/upstream/emscripten/emcc.exe
+-- The ASM compiler identification is unknown
+-- Found assembler: C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/emsdk/upstream/emscripten/emcc.exe
+-- Detected processor: x86
+-- Found PythonInterp: C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/emsdk/python/3.13.3_64bit/python.exe (found suitable version "3.13.3", minimum required is "3.2")
+-- Could NOT find PythonLibs (missing: PYTHON_LIBRARIES PYTHON_INCLUDE_DIRS) (Required is at least version "3.13")
+-- Cannot probe for Python/Numpy support (because we are cross-compiling OpenCV)
+-- If you want to enable Python/Numpy support, set the following variables:
+--   PYTHON3_INCLUDE_PATH
+--   PYTHON3_LIBRARIES (optional on Unix-like systems)
+--   PYTHON3_NUMPY_INCLUDE_DIRS
+-- Looking for ccache - not found
+-- Performing Test HAVE_CXX_FSIGNED_CHAR
+-- Performing Test HAVE_CXX_FSIGNED_CHAR - Success
+-- Performing Test HAVE_C_FSIGNED_CHAR
+-- Performing Test HAVE_C_FSIGNED_CHAR - Success
+-- Performing Test HAVE_CXX_W
+-- Performing Test HAVE_CXX_W - Success
+-- Performing Test HAVE_C_W
+-- Performing Test HAVE_C_W - Success
+-- Performing Test HAVE_CXX_WALL
+-- Performing Test HAVE_CXX_WALL - Success
+-- Performing Test HAVE_C_WALL
+-- Performing Test HAVE_C_WALL - Success
+-- Performing Test HAVE_CXX_WRETURN_TYPE
+-- Performing Test HAVE_CXX_WRETURN_TYPE - Success
+-- Performing Test HAVE_C_WRETURN_TYPE
+-- Performing Test HAVE_C_WRETURN_TYPE - Success
+-- Performing Test HAVE_CXX_WNON_VIRTUAL_DTOR
+-- Performing Test HAVE_CXX_WNON_VIRTUAL_DTOR - Success
+-- Performing Test HAVE_C_WNON_VIRTUAL_DTOR
+-- Performing Test HAVE_C_WNON_VIRTUAL_DTOR - Success
+-- Performing Test HAVE_CXX_WADDRESS
+-- Performing Test HAVE_CXX_WADDRESS - Success
+-- Performing Test HAVE_C_WADDRESS
+-- Performing Test HAVE_C_WADDRESS - Success
+-- Performing Test HAVE_CXX_WSEQUENCE_POINT
+-- Performing Test HAVE_CXX_WSEQUENCE_POINT - Success
+-- Performing Test HAVE_C_WSEQUENCE_POINT
+-- Performing Test HAVE_C_WSEQUENCE_POINT - Success
+-- Performing Test HAVE_CXX_WFORMAT
+-- Performing Test HAVE_CXX_WFORMAT - Success
+-- Performing Test HAVE_C_WFORMAT
+-- Performing Test HAVE_C_WFORMAT - Success
+-- Performing Test HAVE_CXX_WFORMAT_SECURITY
+-- Performing Test HAVE_CXX_WFORMAT_SECURITY - Success
+-- Performing Test HAVE_C_WFORMAT_SECURITY
+-- Performing Test HAVE_C_WFORMAT_SECURITY - Success
+-- Performing Test HAVE_CXX_WMISSING_DECLARATIONS
+-- Performing Test HAVE_CXX_WMISSING_DECLARATIONS - Success
+-- Performing Test HAVE_C_WMISSING_DECLARATIONS
+-- Performing Test HAVE_C_WMISSING_DECLARATIONS - Success
+-- Performing Test HAVE_CXX_WMISSING_PROTOTYPES
+-- Performing Test HAVE_CXX_WMISSING_PROTOTYPES - Success
+-- Performing Test HAVE_C_WMISSING_PROTOTYPES
+-- Performing Test HAVE_C_WMISSING_PROTOTYPES - Success
+-- Performing Test HAVE_CXX_WSTRICT_PROTOTYPES
+-- Performing Test HAVE_CXX_WSTRICT_PROTOTYPES - Success
+-- Performing Test HAVE_C_WSTRICT_PROTOTYPES
+-- Performing Test HAVE_C_WSTRICT_PROTOTYPES - Success
+-- Performing Test HAVE_CXX_WUNDEF
+-- Performing Test HAVE_CXX_WUNDEF - Success
+-- Performing Test HAVE_C_WUNDEF
+-- Performing Test HAVE_C_WUNDEF - Success
+-- Performing Test HAVE_CXX_WINIT_SELF
+-- Performing Test HAVE_CXX_WINIT_SELF - Success
+-- Performing Test HAVE_C_WINIT_SELF
+-- Performing Test HAVE_C_WINIT_SELF - Success
+-- Performing Test HAVE_CXX_WPOINTER_ARITH
+-- Performing Test HAVE_CXX_WPOINTER_ARITH - Success
+-- Performing Test HAVE_C_WPOINTER_ARITH
+-- Performing Test HAVE_C_WPOINTER_ARITH - Success
+-- Performing Test HAVE_CXX_WSHADOW
+-- Performing Test HAVE_CXX_WSHADOW - Success
+-- Performing Test HAVE_C_WSHADOW
+-- Performing Test HAVE_C_WSHADOW - Success
+-- Performing Test HAVE_CXX_WSIGN_PROMO
+-- Performing Test HAVE_CXX_WSIGN_PROMO - Success
+-- Performing Test HAVE_C_WSIGN_PROMO
+-- Performing Test HAVE_C_WSIGN_PROMO - Success
+-- Performing Test HAVE_CXX_WUNINITIALIZED
+-- Performing Test HAVE_CXX_WUNINITIALIZED - Success
+-- Performing Test HAVE_C_WUNINITIALIZED
+-- Performing Test HAVE_C_WUNINITIALIZED - Success
+-- Performing Test HAVE_CXX_WINCONSISTENT_MISSING_OVERRIDE
+-- Performing Test HAVE_CXX_WINCONSISTENT_MISSING_OVERRIDE - Success
+-- Performing Test HAVE_C_WINCONSISTENT_MISSING_OVERRIDE
+-- Performing Test HAVE_C_WINCONSISTENT_MISSING_OVERRIDE - Success
+-- Performing Test HAVE_CXX_WNO_DELETE_NON_VIRTUAL_DTOR
+-- Performing Test HAVE_CXX_WNO_DELETE_NON_VIRTUAL_DTOR - Success
+-- Performing Test HAVE_C_WNO_DELETE_NON_VIRTUAL_DTOR
+-- Performing Test HAVE_C_WNO_DELETE_NON_VIRTUAL_DTOR - Success
+-- Performing Test HAVE_CXX_WNO_UNNAMED_TYPE_TEMPLATE_ARGS
+-- Performing Test HAVE_CXX_WNO_UNNAMED_TYPE_TEMPLATE_ARGS - Success
+-- Performing Test HAVE_C_WNO_UNNAMED_TYPE_TEMPLATE_ARGS
+-- Performing Test HAVE_C_WNO_UNNAMED_TYPE_TEMPLATE_ARGS - Success
+-- Performing Test HAVE_CXX_WNO_COMMENT
+-- Performing Test HAVE_CXX_WNO_COMMENT - Success
+-- Performing Test HAVE_C_WNO_COMMENT
+-- Performing Test HAVE_C_WNO_COMMENT - Success
+-- Performing Test HAVE_CXX_WNO_DEPRECATED_ENUM_ENUM_CONVERSION
+-- Performing Test HAVE_CXX_WNO_DEPRECATED_ENUM_ENUM_CONVERSION - Success
+-- Performing Test HAVE_C_WNO_DEPRECATED_ENUM_ENUM_CONVERSION
+-- Performing Test HAVE_C_WNO_DEPRECATED_ENUM_ENUM_CONVERSION - Success
+-- Performing Test HAVE_CXX_WNO_DEPRECATED_ANON_ENUM_ENUM_CONVERSION
+-- Performing Test HAVE_CXX_WNO_DEPRECATED_ANON_ENUM_ENUM_CONVERSION - Success
+-- Performing Test HAVE_C_WNO_DEPRECATED_ANON_ENUM_ENUM_CONVERSION
+-- Performing Test HAVE_C_WNO_DEPRECATED_ANON_ENUM_ENUM_CONVERSION - Success
+-- Performing Test HAVE_CXX_FDIAGNOSTICS_SHOW_OPTION
+-- Performing Test HAVE_CXX_FDIAGNOSTICS_SHOW_OPTION - Success
+-- Performing Test HAVE_C_FDIAGNOSTICS_SHOW_OPTION
+-- Performing Test HAVE_C_FDIAGNOSTICS_SHOW_OPTION - Success
+-- Performing Test HAVE_CXX_QUNUSED_ARGUMENTS
+-- Performing Test HAVE_CXX_QUNUSED_ARGUMENTS - Success
+-- Performing Test HAVE_C_QUNUSED_ARGUMENTS
+-- Performing Test HAVE_C_QUNUSED_ARGUMENTS - Success
+-- Performing Test HAVE_CXX_FFUNCTION_SECTIONS
+-- Performing Test HAVE_CXX_FFUNCTION_SECTIONS - Success
+-- Performing Test HAVE_C_FFUNCTION_SECTIONS
+-- Performing Test HAVE_C_FFUNCTION_SECTIONS - Success
+-- Performing Test HAVE_CXX_FDATA_SECTIONS
+-- Performing Test HAVE_CXX_FDATA_SECTIONS - Success
+-- Performing Test HAVE_C_FDATA_SECTIONS
+-- Performing Test HAVE_C_FDATA_SECTIONS - Success
+-- Performing Test HAVE_CPU_BASELINE_FLAGS
+-- Performing Test HAVE_CPU_BASELINE_FLAGS - Success
+-- Performing Test HAVE_CXX_MFPMATH_387
+-- Performing Test HAVE_CXX_MFPMATH_387 - Failed
+-- Performing Test HAVE_C_MFPMATH_387
+-- Performing Test HAVE_C_MFPMATH_387 - Failed
+-- Performing Test HAVE_CXX_FVISIBILITY_HIDDEN
+-- Performing Test HAVE_CXX_FVISIBILITY_HIDDEN - Success
+-- Performing Test HAVE_C_FVISIBILITY_HIDDEN
+-- Performing Test HAVE_C_FVISIBILITY_HIDDEN - Success
+-- Performing Test HAVE_CXX_FVISIBILITY_INLINES_HIDDEN
+-- Performing Test HAVE_CXX_FVISIBILITY_INLINES_HIDDEN - Success
+-- Performing Test HAVE_C_FVISIBILITY_INLINES_HIDDEN
+-- Performing Test HAVE_C_FVISIBILITY_INLINES_HIDDEN - Success
+-- Performing Test HAVE_LINK_NO_UNDEFINED
+-- Performing Test HAVE_LINK_NO_UNDEFINED - Failed
+-- Looking for pthread.h
+-- Looking for pthread.h - found
+-- Looking for posix_memalign
+-- Looking for posix_memalign - found
+-- Looking for malloc.h
+-- Looking for malloc.h - found
+-- Looking for memalign
+-- Looking for memalign - found
+-- Looking for getauxval
+-- Looking for getauxval - not found
+-- Looking for elf_aux_info
+-- Looking for elf_aux_info - not found
+-- Looking for fseeko
+-- Looking for fseeko - found
+-- Looking for unistd.h
+-- Looking for unistd.h - found
+-- Looking for stdarg.h
+-- Looking for stdarg.h - found
+-- Looking for sys/types.h
+-- Looking for sys/types.h - found
+-- Looking for stdint.h
+-- Looking for stdint.h - found
+-- Looking for stddef.h
+-- Looking for stddef.h - found
+-- Check size of off64_t
+-- Check size of off64_t - failed
+-- Performing Test HAVE_C_WNO_SHORTEN_64_TO_32
+-- Performing Test HAVE_C_WNO_SHORTEN_64_TO_32 - Success
+-- Performing Test HAVE_C_WNO_ATTRIBUTES
+-- Performing Test HAVE_C_WNO_ATTRIBUTES - Success
+-- Performing Test HAVE_C_WNO_STRICT_PROTOTYPES
+-- Performing Test HAVE_C_WNO_STRICT_PROTOTYPES - Success
+-- Performing Test HAVE_C_WNO_MISSING_PROTOTYPES
+-- Performing Test HAVE_C_WNO_MISSING_PROTOTYPES - Success
+-- Performing Test HAVE_C_WNO_MISSING_DECLARATIONS
+-- Performing Test HAVE_C_WNO_MISSING_DECLARATIONS - Success
+-- Performing Test HAVE_C_WNO_SHIFT_NEGATIVE_VALUE
+-- Performing Test HAVE_C_WNO_SHIFT_NEGATIVE_VALUE - Success
+-- Performing Test HAVE_C_WNO_UNDEF
+-- Performing Test HAVE_C_WNO_UNDEF - Success
+-- Performing Test HAVE_C_WNO_IMPLICIT_FALLTHROUGH
+-- Performing Test HAVE_C_WNO_IMPLICIT_FALLTHROUGH - Success
+-- Performing Test HAVE_CXX_WNO_UNUSED_VARIABLE
+-- Performing Test HAVE_CXX_WNO_UNUSED_VARIABLE - Success
+-- Performing Test HAVE_CXX_WNO_UNUSED_FUNCTION
+-- Performing Test HAVE_CXX_WNO_UNUSED_FUNCTION - Success
+-- Performing Test HAVE_CXX_WNO_UNUSED_PARAMETER
+-- Performing Test HAVE_CXX_WNO_UNUSED_PARAMETER - Success
+-- Performing Test HAVE_CXX_WNO_UNUSED_BUT_SET_VARIABLE
+-- Performing Test HAVE_CXX_WNO_UNUSED_BUT_SET_VARIABLE - Success
+-- Performing Test HAVE_CXX_WNO_SHADOW
+-- Performing Test HAVE_CXX_WNO_SHADOW - Success
+-- Performing Test HAVE_CXX_WNO_MISSING_DECLARATIONS
+-- Performing Test HAVE_CXX_WNO_MISSING_DECLARATIONS - Success
+-- Performing Test HAVE_CXX_WNO_MISSING_PROTOTYPES
+-- Performing Test HAVE_CXX_WNO_MISSING_PROTOTYPES - Success
+-- Performing Test HAVE_CXX_WNO_IMPLICIT_FALLTHROUGH
+-- Performing Test HAVE_CXX_WNO_IMPLICIT_FALLTHROUGH - Success
+-- Performing Test HAVE_CXX_WNO_EXTRA_SEMI
+-- Performing Test HAVE_CXX_WNO_EXTRA_SEMI - Success
+-- Performing Test HAVE_CXX_WNO_DEPRECATED_COPY
+-- Performing Test HAVE_CXX_WNO_DEPRECATED_COPY - Success
+-- Performing Test HAVE_CXX_WNO_SUGGEST_OVERRIDE
+-- Performing Test HAVE_CXX_WNO_SUGGEST_OVERRIDE - Success
+-- Performing Test HAVE_CXX_WNO_CAST_FUNCTION_TYPE
+-- Performing Test HAVE_CXX_WNO_CAST_FUNCTION_TYPE - Success
+-- Performing Test HAVE_CXX_WNO_CLASS_MEMACCESS
+-- Performing Test HAVE_CXX_WNO_CLASS_MEMACCESS - Failed
+-- Performing Test HAVE_CXX_WNO_EXPANSION_TO_DEFINED
+-- Performing Test HAVE_CXX_WNO_EXPANSION_TO_DEFINED - Success
+-- libva: missing va.h header (VA_INCLUDE_DIR)
+-- Performing Test HAVE_CXX_WNO_DEPRECATED
+-- Performing Test HAVE_CXX_WNO_DEPRECATED - Success
+-- Performing Test HAVE_CXX_WNO_UNUSED_LOCAL_TYPEDEFS
+-- Performing Test HAVE_CXX_WNO_UNUSED_LOCAL_TYPEDEFS - Success
+-- Performing Test HAVE_CXX_WNO_SIGN_COMPARE
+-- Performing Test HAVE_CXX_WNO_SIGN_COMPARE - Success
+-- Performing Test HAVE_CXX_WNO_SIGN_PROMO
+-- Performing Test HAVE_CXX_WNO_SIGN_PROMO - Success
+-- Performing Test HAVE_CXX_WNO_UNDEF
+-- Performing Test HAVE_CXX_WNO_UNDEF - Success
+-- Performing Test HAVE_CXX_WNO_TAUTOLOGICAL_UNDEFINED_COMPARE
+-- Performing Test HAVE_CXX_WNO_TAUTOLOGICAL_UNDEFINED_COMPARE - Success
+-- Performing Test HAVE_CXX_WNO_IGNORED_QUALIFIERS
+-- Performing Test HAVE_CXX_WNO_IGNORED_QUALIFIERS - Success
+-- Performing Test HAVE_CXX_WNO_EXTRA
+-- Performing Test HAVE_CXX_WNO_EXTRA - Success
+-- Performing Test HAVE_CXX_WNO_UNUSED_CONST_VARIABLE
+-- Performing Test HAVE_CXX_WNO_UNUSED_CONST_VARIABLE - Success
+-- Performing Test HAVE_CXX_WNO_SHORTEN_64_TO_32
+-- Performing Test HAVE_CXX_WNO_SHORTEN_64_TO_32 - Success
+-- Performing Test HAVE_CXX_WNO_INVALID_OFFSETOF
+-- Performing Test HAVE_CXX_WNO_INVALID_OFFSETOF - Success
+-- Performing Test HAVE_CXX_WNO_ENUM_COMPARE_SWITCH
+-- Performing Test HAVE_CXX_WNO_ENUM_COMPARE_SWITCH - Success
+-- Performing Test HAVE_CXX_WNO_INCONSISTENT_MISSING_OVERRIDE
+-- Performing Test HAVE_CXX_WNO_INCONSISTENT_MISSING_OVERRIDE - Success
+-- Performing Test HAVE_CXX_WNO_ARRAY_BOUNDS
+-- Performing Test HAVE_CXX_WNO_ARRAY_BOUNDS - Success
+-- Performing Test HAVE_CXX_WNO_STRINGOP_OVERFLOW
+-- Performing Test HAVE_CXX_WNO_STRINGOP_OVERFLOW - Failed
+-- Performing Test HAVE_CXX_WNO_STRINGOP_OVERREAD
+-- Performing Test HAVE_CXX_WNO_STRINGOP_OVERREAD - Success
+-- Performing Test HAVE_CXX_WNO_COMMA
+-- Performing Test HAVE_CXX_WNO_COMMA - Success
+-- js: Emscripten version = 6.0.6
+-- Looking for linux/videodev2.h
+-- Looking for linux/videodev2.h - not found
+-- Module opencv_ptcloud disabled because opencv_highgui dependency can't be resolved!
+-- Module opencv_ts disabled because opencv_imgcodecs dependency can't be resolved!
+-- Allocator metrics storage type: 'long long'
+-- Geometry: Eigen support is disabled. Eigen is Required for Posegraph optimization
+-- Excluding from source files list (optimization is disabled): modules/imgproc/src/corner.avx.cpp
+-- Excluding from source files list (optimization is disabled): modules/imgproc/src/imgwarp.avx2.cpp
+-- Excluding from source files list (optimization is disabled): modules/imgproc/src/imgwarp.lasx.cpp
+-- Excluding from source files list (optimization is disabled): modules/imgproc/src/imgwarp.sse4_1.cpp
+-- Excluding from source files list (optimization is disabled): modules/imgproc/src/resize.avx2.cpp
+-- Excluding from source files list (optimization is disabled): modules/imgproc/src/resize.lasx.cpp
+-- Excluding from source files list (optimization is disabled): modules/imgproc/src/resize.sse4_1.cpp
+-- Registering hook 'INIT_MODULE_SOURCES_opencv_dnn': C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/dnn/cmake/hooks/INIT_MODULE_SOURCES_opencv_dnn.cmake
+-- DNN: MLAS (vendored) disabled — host arch/OS not wired up.
+-- opencv_dnn: filter out ocl4dnn source code
+-- opencv_dnn: filter out cuda4dnn source code
+-- opencv_dnn: filter out ocl4dnn source code
+-- opencv_dnn: filter out cuda4dnn source code
+-- Excluding from source files list (optimization is disabled): modules/features/src/fast.avx2.cpp
+-- Performing Test HAVE_CXX_WNO_DEPRECATED_DECLARATIONS
+-- Performing Test HAVE_CXX_WNO_DEPRECATED_DECLARATIONS - Success
+-- Set Cleaners to False
+-- Wrapped in JavaScript(js):
+--     opencv_core
+--     opencv_geometry
+--     opencv_imgproc
+--     opencv_photo
+--     opencv_stereo
+--     opencv_dnn
+--     opencv_features
+--     opencv_objdetect
+--     opencv_video
+--     opencv_calib
+-- Use autogenerated whitelist C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/build_js/modules/js_bindings_generator/whitelist.json
+-- Found 'misc' Python modules from C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/python/package/extra_modules
+-- Found 'mat_wrapper;utils' Python modules from C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/opencv/modules/core/misc/python/package
+-- js: Emscripten version = 6.0.6
+-- 
+-- General configuration for OpenCV 5.1.0-dev =====================================
+--   Version control:               96fcd0c
+-- 
+--   Platform:
+--     Timestamp:                   2026-08-16T16:51:05Z
+--     Host:                        Windows 10.0.26200 AMD64
+--     Target:                      Emscripten 1 x86
+--     CMake:                       4.4.2
+--     CMake generator:             Ninja
+--     CMake build tool:            C:/Users/LEGION/AppData/Local/Microsoft/WinGet/Packages/Ninja-build.Ninja_Microsoft.Winget.Source_8wekyb3d8bbwe/ninja.exe
+--     Configuration:               Release
+--     Algorithm Hint:              ALGO_HINT_ACCURATE
+-- 
+--   CPU/HW features:
+--     Baseline:
+-- 
+--   C/C++:
+--     Built as dynamic libs?:      NO
+--     C++ standard:                17
+--     C++ Compiler:                C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/emsdk/upstream/emscripten/em++.exe  (ver 24.0.0)
+--     C++ flags (Release):         -s SINGLE_FILE=1 -s USE_PTHREADS=0 -s EXPORTED_FUNCTIONS="['_malloc', '_free']"   -fsigned-char -W -Wall -Wreturn-type -Wnon-virtual-dtor -Waddress -Wsequence-point -Wformat -Wformat-security -Wmissing-declarations -Wmissing-prototypes -Wstrict-prototypes -Wundef -Winit-self -Wpointer-arith -Wshadow -Wsign-promo -Wuninitialized -Winconsistent-missing-override -Wno-delete-non-virtual-dtor -Wno-unnamed-type-template-args -Wno-comment -Wno-deprecated-enum-enum-conversion -Wno-deprecated-anon-enum-enum-conversion -fdiagnostics-show-option -Qunused-arguments -ffunction-sections -fdata-sections  -fvisibility=hidden -fvisibility-inlines-hidden -O3 -DNDEBUG  -DNDEBUG
+--     C++ flags (Debug):           -s SINGLE_FILE=1 -s USE_PTHREADS=0 -s EXPORTED_FUNCTIONS="['_malloc', '_free']"   -fsigned-char -W -Wall -Wreturn-type -Wnon-virtual-dtor -Waddress -Wsequence-point -Wformat -Wformat-security -Wmissing-declarations -Wmissing-prototypes -Wstrict-prototypes -Wundef -Winit-self -Wpointer-arith -Wshadow -Wsign-promo -Wuninitialized -Winconsistent-missing-override -Wno-delete-non-virtual-dtor -Wno-unnamed-type-template-args -Wno-comment -Wno-deprecated-enum-enum-conversion -Wno-deprecated-anon-enum-enum-conversion -fdiagnostics-show-option -Qunused-arguments -ffunction-sections -fdata-sections  -fvisibility=hidden -fvisibility-inlines-hidden -g  -O0 -DDEBUG -D_DEBUG
+--     C Compiler:                  C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/emsdk/upstream/emscripten/emcc.exe
+--     C flags (Release):           -s SINGLE_FILE=1 -s USE_PTHREADS=0 -s EXPORTED_FUNCTIONS="['_malloc', '_free']"   -fsigned-char -W -Wall -Wreturn-type -Wnon-virtual-dtor -Waddress -Wsequence-point -Wformat -Wformat-security -Wmissing-declarations -Wmissing-prototypes -Wstrict-prototypes -Wundef -Winit-self -Wpointer-arith -Wshadow -Wsign-promo -Wuninitialized -Winconsistent-missing-override -Wno-delete-non-virtual-dtor -Wno-unnamed-type-template-args -Wno-comment -Wno-deprecated-enum-enum-conversion -Wno-deprecated-anon-enum-enum-conversion -fdiagnostics-show-option -Qunused-arguments -ffunction-sections -fdata-sections  -fvisibility=hidden -fvisibility-inlines-hidden -O3 -DNDEBUG  -DNDEBUG
+--     C flags (Debug):             -s SINGLE_FILE=1 -s USE_PTHREADS=0 -s EXPORTED_FUNCTIONS="['_malloc', '_free']"   -fsigned-char -W -Wall -Wreturn-type -Wnon-virtual-dtor -Waddress -Wsequence-point -Wformat -Wformat-security -Wmissing-declarations -Wmissing-prototypes -Wstrict-prototypes -Wundef -Winit-self -Wpointer-arith -Wshadow -Wsign-promo -Wuninitialized -Winconsistent-missing-override -Wno-delete-non-virtual-dtor -Wno-unnamed-type-template-args -Wno-comment -Wno-deprecated-enum-enum-conversion -Wno-deprecated-anon-enum-enum-conversion -fdiagnostics-show-option -Qunused-arguments -ffunction-sections -fdata-sections  -fvisibility=hidden -fvisibility-inlines-hidden -g  -O0 -DDEBUG -D_DEBUG
+--     Linker flags (Release):      -Wl,--gc-sections  
+--     Linker flags (Debug):        -Wl,--gc-sections  
+--     ccache:                      NO
+--     Precompiled headers:         NO
+--     Extra dependencies:
+--     3rdparty dependencies:       libprotobuf zlib libharfbuzz
+-- 
+--   OpenCV modules:
+--     To be built:                 calib core dnn features flann geometry imgproc js objdetect photo stereo video
+--     Disabled:                    highgui imgcodecs stitching videoio world
+--     Disabled by dependency:      ptcloud ts
+--     Unavailable:                 java python3
+--     Applications:                examples
+--     Documentation:               js
+--     Non-free algorithms:         NO
+-- 
+--   GUI: 
+-- 
+--   Media I/O: 
+--     ZLib:                        build (ver 1.3.2)
+--     GIF:                         YES
+--     HDR:                         YES
+--     SUNRASTER:                   YES
+--     PXM:                         YES
+--     PFM:                         YES
+-- 
+--   Video I/O:
+--     Orbbec:                      NO
+-- 
+--   Parallel framework:            none
+-- 
+--   Other third-party libraries:
+--     HarfBuzz:                    build (14.2.1)
+--     VA:                          NO
+--     Custom HAL:                  NO
+--     Protobuf:                    build (3.19.1)
+--     Flatbuffers:                 builtin/3rdparty (25.9.23)
+-- 
+--   ONNX Runtime:                  NO
+-- 
+--   Python (for build):            C:\Users\LEGION\Desktop\MedLens Vision\opencv5-build\emsdk\python\3.13.3_64bit\python.exe
+-- 
+--   Install to:                    /usr/local
+-- -----------------------------------------------------------------
+-- 
+-- Configuring done (373.9s)
+-- Generating done (0.8s)
+-- Build files have been written to: C:/Users/LEGION/Desktop/MedLens Vision/opencv5-build/build_js
+-----------------------------------------------------------
+options.opencv_dir: C:\Users\LEGION\Desktop\MedLens Vision\opencv5-build\opencv

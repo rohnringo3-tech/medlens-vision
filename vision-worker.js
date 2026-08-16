@@ -126,11 +126,74 @@ function largestGapThreshold(values) {
   return (sorted[gapAt] + sorted[gapAt + 1]) / 2;
 }
 
-function countPills(srcRgba) {
-  const gray = new cv.Mat(), blurred = new cv.Mat(), circles = new cv.Mat();
+/* ---- detector v2: shape-agnostic contour pass (round, capsule, oblong) ---- */
+function detectCellsByContour(gray, inverted, bias) {
+  const bin = new cv.Mat(), kernel = cv.getStructuringElement(cv.MORPH_ELLIPSE, new cv.Size(5, 5));
+  const diff = new cv.Mat();
+  const contours = new cv.MatVector(), hier = new cv.Mat();
   const cells = [];
   try {
-    cv.cvtColor(srcRgba, gray, cv.COLOR_RGBA2GRAY);
+    const minDim = Math.min(gray.rows, gray.cols);
+    /* Morphological top-hat (bright pass) / black-hat (dark pass): isolates
+       blobs SMALLER than the structuring element and cancels everything at
+       larger scales — so pills pop out while the blister sheet itself, its
+       borders and lighting gradients vanish. This is the multi-scale trick
+       a plain local-mean threshold cannot do (the sheet border always leaks). */
+    let big = Math.max(31, Math.round(minDim / 3)); if (big % 2 === 0) big++;
+    const bigK = cv.getStructuringElement(cv.MORPH_RECT, new cv.Size(big, big));
+    try {
+      cv.morphologyEx(gray, diff, inverted ? cv.MORPH_BLACKHAT : cv.MORPH_TOPHAT, bigK);
+    } finally { bigK.delete(); }
+    /* Otsu on the top-hat auto-separates pill-peaks from background leak
+       (embossed seams / cell rings drag erosion down and leak the whole
+       sheet past any fixed bias); floor it at `bias` for near-flat images */
+    const otsuT = cv.threshold(diff, bin, 0, 255, cv.THRESH_BINARY + cv.THRESH_OTSU);
+    if (otsuT < bias) cv.threshold(diff, bin, bias, 255, cv.THRESH_BINARY);
+    cv.morphologyEx(bin, bin, cv.MORPH_OPEN, kernel);
+    if (self.__dumpBins && !inverted) {
+      const sx = Math.ceil(bin.cols / 90), sy = Math.ceil(bin.rows / 40);
+      let art = "";
+      for (let y = 0; y < bin.rows; y += sy) {
+        for (let x = 0; x < bin.cols; x += sx) art += bin.ucharPtr(y, x)[0] > 128 ? "#" : ".";
+        art += "\n";
+      }
+      let gart = "";
+      for (let y = 0; y < gray.rows; y += sy) {
+        for (let x = 0; x < gray.cols; x += sx) { const v = gray.ucharPtr(y, x)[0]; gart += v > 210 ? "@" : v > 180 ? "#" : v > 140 ? "+" : v > 80 ? "." : " "; }
+        gart += "\n";
+      }
+      detectCellsByContour._art = { bin: art, gray: gart };
+    }
+    cv.findContours(bin, contours, hier, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
+    const frameArea = gray.rows * gray.cols;
+    const trace = [];
+    for (let i = 0; i < contours.size(); i++) {
+      const c = contours.get(i);
+      try {
+        const area = cv.contourArea(c);
+        const rr = cv.minAreaRect(c);
+        const w = rr.size.width, h = rr.size.height;
+        const rec = { a: Math.round(area), w: Math.round(w), h: Math.round(h) };
+        if (trace.length < 14) trace.push(rec);
+        if (area < frameArea * 0.002 || area > frameArea * 0.15) { rec.x = "area"; continue; }
+        if (!w || !h) { rec.x = "dim"; continue; }
+        const major = Math.max(w, h), minor = Math.min(w, h);
+        if (major / minor > 3.2) { rec.x = "aspect"; continue; }
+        if (area / (w * h) < 0.6) { rec.x = "fill"; continue; }
+        rec.x = "ok";
+        cells.push({ cx: rr.center.x, cy: rr.center.y, r: (major + minor) / 4,
+                     major, minor, angle: rr.angle, area });
+      } finally { c.delete(); }
+    }
+    detectCellsByContour._trace = { n: contours.size(), big, trace };
+  } finally { bin.delete(); kernel.delete(); diff.delete(); contours.delete(); hier.delete(); }
+  return cells;
+}
+
+function detectCellsByHough(gray) {
+  const blurred = new cv.Mat(), circles = new cv.Mat();
+  const cells = [];
+  try {
     cv.medianBlur(gray, blurred, 5);
     const minDim = Math.min(gray.rows, gray.cols);
     cv.HoughCircles(blurred, circles, cv.HOUGH_GRADIENT, 1,
@@ -138,26 +201,98 @@ function countPills(srcRgba) {
       Math.round(minDim / 22), Math.round(minDim / 5));
     for (let i = 0; i < circles.cols; i++) {
       const cx = circles.data32F[i * 3], cy = circles.data32F[i * 3 + 1], r = circles.data32F[i * 3 + 2];
-      cells.push({ cx, cy, r, sharp: cellSharpness(gray, cx, cy, r) });
+      cells.push({ cx, cy, r, major: r * 2, minor: r * 2, angle: 0, area: Math.PI * r * r });
     }
-    /* Plausibility gate: real blister packs have 4-30 roughly UNIFORM cells.
-       Two circles found on a bottle cap and a logo must not become a
-       "blister pack detected" claim. */
-    if (cells.length < 4 || cells.length > 30) return null;
-    const radii = cells.map(c => c.r).sort((a, b) => a - b);
-    const medianR = radii[Math.floor(radii.length / 2)];
-    if (cells.some(c => Math.abs(c.r - medianR) > medianR * 0.3)) return null;
-    const thr = largestGapThreshold(cells.map(c => c.sharp));
-    if (thr === null) {
-      /* the texture split found no evidence either way — report the count
-         honestly and say nothing about intact vs taken */
+  } finally { blurred.delete(); circles.delete(); }
+  return cells;
+}
+
+/* Keep only a plausible, mutually-uniform family of cells; null = no pack. */
+function gateUniform(cells) {
+  if (cells.length < 4 || cells.length > 30) return null;
+  const areas = cells.map(c => c.area).sort((a, b) => a - b);
+  const medA = areas[Math.floor(areas.length / 2)];
+  const kept = cells.filter(c => c.area > medA * 0.45 && c.area < medA * 2.2);
+  if (kept.length < 4 || kept.length > 30) return null;
+  /* dedupe near-duplicate detections (same cell found twice) */
+  const out = [];
+  for (const c of kept) {
+    if (!out.some(o => Math.hypot(o.cx - c.cx, o.cy - c.cy) < (o.r + c.r) * 0.6)) out.push(c);
+  }
+  return out.length >= 4 ? out : null;
+}
+
+/* Blister invariant: cells sit on a grid. Recover cells whose pill was fully
+   torn out (no contour) — CONSERVATIVELY: only positions whose row AND column
+   both already exist, and every recovered cell is marked, never "intact". */
+function gridRecover(cells, gray) {
+  if (cells.length < 4) return [];
+  const tol = cells.reduce((s, c) => s + c.r, 0) / cells.length;
+  const cluster = (vals) => {
+    const centers = [];
+    for (const v of vals.sort((a, b) => a - b)) {
+      const hit = centers.find(c => Math.abs(c.mean - v) < tol);
+      if (hit) { hit.sum += v; hit.n++; hit.mean = hit.sum / hit.n; }
+      else centers.push({ mean: v, sum: v, n: 1 });
+    }
+    return centers.map(c => c.mean);
+  };
+  const rows = cluster(cells.map(c => c.cy));
+  const cols = cluster(cells.map(c => c.cx));
+  if (rows.length < 2 || cols.length < 2 || rows.length * cols.length > 30) return [];
+  const recovered = [];
+  for (const ry of rows) for (const cx of cols) {
+    if (cells.some(c => Math.hypot(c.cx - cx, c.cy - ry) < tol * 1.2)) continue;
+    if (cx < tol || ry < tol || cx > gray.cols - tol || ry > gray.rows - tol) continue;
+    recovered.push({ cx, cy: ry, r: tol, major: tol * 2, minor: tol * 2, angle: 0,
+                     area: Math.PI * tol * tol, recovered: true });
+  }
+  /* if we "recovered" more than we detected, the grid assumption is wrong */
+  return recovered.length <= cells.length ? recovered : [];
+}
+
+function countPills(srcRgba) {
+  const gray = new cv.Mat();
+  try {
+    cv.cvtColor(srcRgba, gray, cv.COLOR_RGBA2GRAY);
+    /* three candidate detections: contour bright, contour dark, Hough circles.
+       Pick the most populous plausible family — the cross-check vote. */
+    /* three independent detections: clearly-brighter blobs, clearly-darker
+       blobs, and Hough circles. The plausibility gate + populous-vote picks
+       the survivor — bright for pills on foil, dark for pressed-out holes. */
+    const bright = detectCellsByContour(gray, false, 15);
+    const bTrace = detectCellsByContour._trace;
+    const dark = detectCellsByContour(gray, true, 15);
+    const dTrace = detectCellsByContour._trace;
+    const hough = detectCellsByHough(gray);
+    const passes = [
+      { k: "bright", cells: bright },
+      { k: "dark", cells: dark },
+      { k: "hough", cells: hough },
+    ];
+    const candidates = passes.map(p => gateUniform(p.cells)).filter(Boolean);
+    countPills._dbg = { bright: bright.length, dark: dark.length, hough: hough.length, bTrace, dTrace,
+      art: detectCellsByContour._art || null };
+    if (!candidates.length) return null;
+    candidates.sort((a, b) => b.length - a.length);
+    let cells = candidates[0];
+    /* recover fully torn-out cells from the grid pattern */
+    const recovered = gridRecover(cells, gray);
+    cells = cells.concat(recovered);
+    if (cells.length > 30) return null;
+    /* texture split on DETECTED cells only; recovered ones are empty by definition */
+    const detected = cells.filter(c => !c.recovered);
+    for (const c of detected) c.sharp = cellSharpness(gray, c.cx, c.cy, c.r);
+    const thr = largestGapThreshold(detected.map(c => c.sharp));
+    for (const c of cells) c.empty = c.recovered ? true : (thr !== null && c.sharp > thr);
+    if (thr === null && !recovered.length) {
+      /* no evidence either way — report the count honestly, say nothing more */
       for (const c of cells) c.empty = false;
       return { total: cells.length, full: null, empty: null, cells, estimated: true };
     }
-    for (const c of cells) c.empty = c.sharp > thr;
     const empty = cells.filter(c => c.empty).length;
     return { total: cells.length, full: cells.length - empty, empty, cells, estimated: true };
-  } finally { gray.delete(); blurred.delete(); circles.delete(); }
+  } finally { gray.delete(); }
 }
 
 function pillColorName(srcRgba, cells) {
@@ -214,7 +349,13 @@ function drawOverlay(srcRgba, quad, pills) {
       for (const c of pills.cells) {
         const col = unknown ? new cv.Scalar(56, 189, 248, 255)
           : c.empty ? new cv.Scalar(225, 60, 60, 255) : new cv.Scalar(22, 163, 74, 255);
-        cv.circle(vis, new cv.Point(c.cx, c.cy), Math.round(c.r), col, 3);
+        /* capsules/oblongs get their true ellipse; round pills a circle */
+        if (c.major && c.minor && c.major / c.minor > 1.3) {
+          cv.ellipse(vis, new cv.Point(c.cx, c.cy), new cv.Size(c.major / 2, c.minor / 2),
+            c.angle || 0, 0, 360, col, 3);
+        } else {
+          cv.circle(vis, new cv.Point(c.cx, c.cy), Math.round(c.r), col, 3);
+        }
         /* pressed-out cells also get an X so the verdict survives color-blindness */
         if (!unknown && c.empty) {
           const d = c.r * 0.55;
@@ -243,10 +384,16 @@ function analyze(imageData) {
         out.labelImage = matToImageData(label);
       }
     }
-    out.pills = countPills(src);
-    if (out.pills) out.colorName = pillColorName(src, out.pills.cells);
-    out.overlayImage = drawOverlay(src, quad, out.pills);
-    if (out.pills) out.pills.cells = out.pills.cells.map(c => ({ cx: c.cx, cy: c.cy, r: c.r, empty: !!c.empty }));
+    /* rectify-THEN-count: when the sheet/label quad was found, measure in the
+       flattened space — angled circles stop being ellipses, spacing is true.
+       The overlay then shows the rectified view (no quad outline needed). */
+    const base = label || src;
+    out.pills = countPills(base);
+    out.dbg = countPills._dbg || null;
+    out.rectifiedCount = !!label && !!out.pills;
+    if (out.pills) out.colorName = pillColorName(base, out.pills.cells);
+    out.overlayImage = drawOverlay(base, label ? null : quad, out.pills);
+    if (out.pills) out.pills.cells = out.pills.cells.map(c => ({ cx: c.cx, cy: c.cy, r: c.r, empty: !!c.empty, recovered: !!c.recovered }));
   } finally {
     gray.delete(); src.delete(); if (label) label.delete();
   }
@@ -267,6 +414,7 @@ function run(id, imageData) {
 }
 
 onmessage = (e) => {
+  if (e.data && e.data.type === "debug-art") { self.__dumpBins = true; return; }
   const { id, imageData } = e.data;
   if (ready) run(id, imageData);
   else if (failed) postMessage({ type: "result", id, error: "opencv failed to initialize" });
