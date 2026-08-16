@@ -49,6 +49,17 @@ function orderCorners(pts) {
   return [0, 1, 2, 3].map(i => sorted[(start + i) % 4]);
 }
 
+/* Median gray level, sampled — drives the auto-Canny thresholds so edge
+   detection adapts to dark kitchens and bright daylight alike. */
+function grayMedian(gray) {
+  const data = gray.data, n = data.length;
+  const step = Math.max(1, Math.floor(n / 9973));
+  const sample = [];
+  for (let i = 0; i < n; i += step) sample.push(data[i]);
+  sample.sort((a, b) => a - b);
+  return sample[Math.floor(sample.length / 2)];
+}
+
 function findLabelQuad(gray) {
   const blur = new cv.Mat(), edges = new cv.Mat(), hier = new cv.Mat();
   const kernel = cv.getStructuringElement(cv.MORPH_RECT, new cv.Size(3, 3));
@@ -56,7 +67,10 @@ function findLabelQuad(gray) {
   let best = null;
   try {
     cv.GaussianBlur(gray, blur, new cv.Size(5, 5), 0);
-    cv.Canny(blur, edges, 50, 150);
+    /* auto-Canny: thresholds from the image's own median instead of the
+       tutorial's fixed 50/150 — low-contrast labels stop disappearing */
+    const med = grayMedian(gray);
+    cv.Canny(blur, edges, Math.max(15, 0.66 * med), Math.min(255, Math.max(45, 1.33 * med)));
     cv.dilate(edges, edges, kernel);
     cv.findContours(edges, contours, hier, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
     let bestArea = gray.rows * gray.cols * 0.18;
@@ -103,6 +117,23 @@ function warpQuad(src, quad) {
   } finally {
     for (const m of [srcTri, dstTri, M, out]) if (m) m.delete();
   }
+}
+
+/* Fraction of near-blown-out pixels in a cell — glare. A specular highlight
+   fakes high texture, so glary cells must abstain, not guess. */
+function cellSpecularFrac(gray, cx, cy, r) {
+  /* sample the WHOLE cell, not the centre patch: a healthy glossy dome has a
+     small centred highlight (normal), real glare blows out half the cell */
+  const half = Math.max(4, Math.round(r * 0.95));
+  const x = Math.max(0, Math.round(cx - half)), y = Math.max(0, Math.round(cy - half));
+  const wDim = Math.min(gray.cols - x, half * 2), hDim = Math.min(gray.rows - y, half * 2);
+  if (wDim < 6 || hDim < 6) return 0;
+  let hot = 0, total = 0;
+  for (let yy = y; yy < y + hDim; yy += 2) {
+    const row = yy * gray.cols;
+    for (let xx = x; xx < x + wDim; xx += 2) { total++; if (gray.data[row + xx] >= 245) hot++; }
+  }
+  return total ? hot / total : 0;
 }
 
 function cellSharpness(gray, cx, cy, r) {
@@ -287,18 +318,30 @@ function countPills(srcRgba) {
     const recovered = gridRecover(cells, gray);
     cells = cells.concat(recovered);
     if (cells.length > 30) return null;
-    /* texture split on DETECTED cells only; recovered ones are empty by definition */
+    /* texture split on DETECTED cells only; recovered ones are empty by
+       definition, and glary cells ABSTAIN — a specular highlight fakes the
+       exact texture signature of torn foil, so guessing there is lying */
     const detected = cells.filter(c => !c.recovered);
-    for (const c of detected) c.sharp = cellSharpness(gray, c.cx, c.cy, c.r);
-    const thr = largestGapThreshold(detected.map(c => c.sharp));
-    for (const c of cells) c.empty = c.recovered ? true : (thr !== null && c.sharp > thr);
+    for (const c of detected) {
+      c.spec = cellSpecularFrac(gray, c.cx, c.cy, c.r);
+      c.unknown = c.spec > 0.3;
+      if (!c.unknown) c.sharp = cellSharpness(gray, c.cx, c.cy, c.r);
+    }
+    const judgeable = detected.filter(c => !c.unknown);
+    const thr = largestGapThreshold(judgeable.map(c => c.sharp));
+    for (const c of cells) {
+      if (c.recovered) { c.empty = true; continue; }
+      if (c.unknown) { c.empty = false; continue; } // counted, never classified
+      c.empty = thr !== null && c.sharp > thr;
+    }
+    const unknown = detected.filter(c => c.unknown).length;
     if (thr === null && !recovered.length) {
       /* no evidence either way — report the count honestly, say nothing more */
       for (const c of cells) c.empty = false;
-      return { total: cells.length, full: null, empty: null, cells, estimated: true };
+      return { total: cells.length, full: null, empty: null, unknown, cells, estimated: true };
     }
     const empty = cells.filter(c => c.empty).length;
-    return { total: cells.length, full: cells.length - empty, empty, cells, estimated: true };
+    return { total: cells.length, full: cells.length - empty - unknown, empty, unknown, cells, estimated: true };
   } finally { gray.delete(); }
 }
 
@@ -354,7 +397,7 @@ function drawOverlay(srcRgba, quad, pills) {
     if (pills) {
       const unknown = pills.full === null; // texture split found no evidence — draw neutral
       for (const c of pills.cells) {
-        const col = unknown ? new cv.Scalar(56, 189, 248, 255)
+        const col = (unknown || c.unknown) ? new cv.Scalar(56, 189, 248, 255)
           : c.empty ? new cv.Scalar(225, 60, 60, 255) : new cv.Scalar(22, 163, 74, 255);
         /* capsules/oblongs get their true ellipse; round pills a circle */
         if (c.major && c.minor && c.major / c.minor > 1.3) {
@@ -400,7 +443,7 @@ function analyze(imageData) {
     out.rectifiedCount = !!label && !!out.pills;
     if (out.pills) out.colorName = pillColorName(base, out.pills.cells);
     out.overlayImage = drawOverlay(base, label ? null : quad, out.pills);
-    if (out.pills) out.pills.cells = out.pills.cells.map(c => ({ cx: c.cx, cy: c.cy, r: c.r, empty: !!c.empty, recovered: !!c.recovered }));
+    if (out.pills) out.pills.cells = out.pills.cells.map(c => ({ cx: c.cx, cy: c.cy, r: c.r, empty: !!c.empty, recovered: !!c.recovered, unknown: !!c.unknown }));
   } finally {
     gray.delete(); src.delete(); if (label) label.delete();
   }

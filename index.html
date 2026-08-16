@@ -908,7 +908,99 @@ const IX_PAIRS = [
     note: "Both cause drowsiness. Together they can dangerously slow breathing and reactions — avoid driving." },
   { a: ["paracetamol", "acetaminophen"], b: ["warfarin"],
     severity: "caution",
-    note: "Regular paracetamol use can strengthen warfarin's effect. Occasional doses are usually fine — ask your doctor if using daily." }
+    note: "Regular paracetamol use can strengthen warfarin's effect. Occasional doses are usually fine — ask your doctor if using daily." },
+  /* --- warfarin: the most interaction-prone common drug --- */
+  { a: ["warfarin"], b: ["metronidazole", "fluconazole", "miconazole"],
+    severity: "avoid",
+    note: "These antifungal/antibiotic medicines can multiply warfarin's blood-thinning effect and cause serious bleeding. Doctors usually adjust the dose or pick another drug." },
+  { a: ["warfarin"], b: ["clarithromycin", "erythromycin", "azithromycin", "ciprofloxacin"],
+    severity: "caution",
+    note: "Many antibiotics strengthen warfarin. If you take warfarin and start an antibiotic, tell the prescriber — your INR usually needs checking." },
+  { a: ["warfarin"], b: ["amiodarone", "tramadol"],
+    severity: "caution",
+    note: "This combination can strengthen warfarin's effect. Extra blood-test monitoring is usually needed." },
+  /* --- serotonin: SSRIs and friends --- */
+  { a: ["fluoxetine", "sertraline", "paroxetine", "citalopram", "escitalopram", "fluvoxamine", "venlafaxine", "duloxetine"], b: ["phenelzine", "moclobemide", "selegiline", "linezolid", "isocarboxazid", "tranylcypromine"],
+    severity: "avoid",
+    note: "An SSRI/SNRI together with an MAOI-type medicine can cause serotonin syndrome — a medical emergency. These need a doctor-managed washout period between them." },
+  { a: ["fluoxetine", "sertraline", "paroxetine", "citalopram", "escitalopram", "fluvoxamine", "venlafaxine", "duloxetine"], b: ["tramadol", "sumatriptan", "rizatriptan"],
+    severity: "caution",
+    note: "Both raise serotonin. Watch for agitation, sweating, racing heart, tremor — and seek care fast if they appear." },
+  { a: ["fluoxetine", "sertraline", "paroxetine", "citalopram", "escitalopram", "fluvoxamine"], b: ["ibuprofen", "naproxen", "diclofenac", "acetylsalicylic", "aspirin", "warfarin"],
+    severity: "caution",
+    note: "SSRIs plus blood thinners or NSAID painkillers raise stomach-bleeding risk. Ask about stomach protection if used together regularly." },
+  /* --- lithium: narrow safety window --- */
+  { a: ["lithium"], b: ["ibuprofen", "naproxen", "diclofenac"],
+    severity: "avoid",
+    note: "NSAID painkillers make the body hold on to lithium — levels can climb to toxic. Paracetamol is the usual safer choice." },
+  { a: ["lithium"], b: ["lisinopril", "enalapril", "ramipril", "losartan", "valsartan", "hydrochlorothiazide", "bendroflumethiazide"],
+    severity: "caution",
+    note: "Blood-pressure medicines of this type can raise lithium levels. Doctors monitor lithium closely when combining." },
+  /* --- potassium traps --- */
+  { a: ["lisinopril", "enalapril", "ramipril", "captopril", "losartan", "valsartan"], b: ["spironolactone", "eplerenone", "potassium chloride"],
+    severity: "caution",
+    note: "Together these can push blood potassium dangerously high, which affects the heart. Needs blood-test monitoring." },
+  /* --- statins --- */
+  { a: ["simvastatin", "atorvastatin", "lovastatin"], b: ["clarithromycin", "erythromycin", "itraconazole", "ketoconazole"],
+    severity: "avoid",
+    note: "These antibiotics/antifungals block the statin's breakdown — muscle damage (rhabdomyolysis) can follow. Statins are often paused during the course." },
+  { a: ["simvastatin", "atorvastatin", "rosuvastatin", "lovastatin"], b: ["gemfibrozil"],
+    severity: "avoid",
+    note: "Gemfibrozil with a statin sharply raises muscle-damage risk. Doctors pick safer combinations." },
+  { a: ["simvastatin"], b: ["amiodarone", "verapamil", "diltiazem"],
+    severity: "caution",
+    note: "These heart medicines raise simvastatin levels — doses above 20 mg become risky for muscles. Mention it to your doctor." },
+  /* --- digoxin --- */
+  { a: ["digoxin"], b: ["amiodarone", "verapamil", "clarithromycin", "spironolactone"],
+    severity: "caution",
+    note: "These raise digoxin levels; digoxin toxicity causes nausea, vision changes and dangerous heart rhythms. Levels usually need checking." },
+  /* --- methotrexate --- */
+  { a: ["methotrexate"], b: ["trimethoprim", "co-trimoxazole", "cotrimoxazole", "sulfamethoxazole"],
+    severity: "avoid",
+    note: "This antibiotic combination with methotrexate can shut down blood-cell production. It is one of the classic dangerous pairs — avoid." },
+  /* --- nitrates + ED medicines --- */
+  { a: ["sildenafil", "tadalafil", "vardenafil"], b: ["nitroglycerin", "glyceryl trinitrate", "isosorbide"],
+    severity: "avoid",
+    note: "Together these crash blood pressure — people faint and hearts are starved of blood. Never combine; emergency crews specifically ask about this." },
+  /* --- sedation stacking --- */
+  { a: ["codeine", "tramadol", "morphine", "oxycodone", "dihydrocodeine"], b: ["diazepam", "lorazepam", "alprazolam", "clonazepam", "zolpidem", "zopiclone"],
+    severity: "avoid",
+    note: "Opioid painkillers plus sleeping/anxiety tablets slow breathing — this combination is behind many accidental deaths. Only under close medical supervision." },
+  /* --- antibiotics with narrow-window drugs --- */
+  { a: ["ciprofloxacin"], b: ["theophylline", "tizanidine"],
+    severity: "avoid",
+    note: "Ciprofloxacin blocks the breakdown of these drugs — levels can become toxic (seizures, dangerous sedation). Doctors choose a different antibiotic." },
+  { a: ["clarithromycin", "erythromycin"], b: ["theophylline", "carbamazepine", "colchicine"],
+    severity: "caution",
+    note: "These antibiotics raise the levels of this medicine; toxicity can follow. Tell the prescriber what you already take — colchicine especially can become dangerous." },
+  /* --- gout/immune --- */
+  { a: ["allopurinol"], b: ["azathioprine", "mercaptopurine"],
+    severity: "avoid",
+    note: "Allopurinol blocks the breakdown of these immune-suppressing drugs — standard doses become overdoses. Doctors cut the dose to a quarter or avoid the combination." },
+  /* --- absorption blockers (very common with OTC products) --- */
+  { a: ["calcium", "ferrous", "magnesium", "aluminium", "aluminum", "zinc"], b: ["doxycycline", "tetracycline", "ciprofloxacin", "levofloxacin", "levothyroxine", "thyroxine"],
+    severity: "caution",
+    note: "Antacids, calcium, iron and zinc bind this medicine in the gut so much less is absorbed. Take them at least 2-4 hours apart." },
+  /* --- clopidogrel --- */
+  { a: ["clopidogrel"], b: ["omeprazole", "esomeprazole"],
+    severity: "caution",
+    note: "Omeprazole can weaken clopidogrel's clot-preventing effect. Pantoprazole is usually the preferred stomach protector — ask your doctor." },
+  /* --- isotretinoin --- */
+  { a: ["isotretinoin"], b: ["doxycycline", "tetracycline", "minocycline"],
+    severity: "avoid",
+    note: "Acne treatments from these two families together raise pressure inside the skull (severe headaches, vision problems). Use one, not both." },
+  /* --- rhythm/QT stacking --- */
+  { a: ["amiodarone"], b: ["azithromycin", "clarithromycin", "ondansetron", "domperidone", "haloperidol"],
+    severity: "caution",
+    note: "Both can stretch the heart's electrical cycle (QT). Together the risk of a dangerous rhythm rises — doctors usually check an ECG or choose alternatives." },
+  /* --- heart-rate stacking --- */
+  { a: ["verapamil", "diltiazem"], b: ["metoprolol", "atenolol", "bisoprolol", "propranolol", "carvedilol"],
+    severity: "caution",
+    note: "Both slow the heart. Together they can slow it too far (dizziness, fainting, heart block). Usually only combined deliberately by a cardiologist." },
+  /* --- MAOI + cold remedies --- */
+  { a: ["phenelzine", "moclobemide", "selegiline", "tranylcypromine"], b: ["dextromethorphan", "pseudoephedrine", "phenylephrine"],
+    severity: "avoid",
+    note: "Common cough/cold ingredients with MAOI antidepressants can trigger dangerous blood-pressure spikes or serotonin syndrome. Check every cold remedy with a pharmacist." }
 ];
 
 /* salt/filler/descriptor words that are NOT active ingredients — never treat a
@@ -920,8 +1012,36 @@ const SALTS = new Set(["sodium", "hydrochloride", "sulfate", "sulphate", "phosph
   "antiseptic", "analgesic", "astringent", "demulcent", "antibiotic", "antifungal",
   "solution", "suspension", "ointment", "syrup", "unknown"]);
 
+/* The same drug travels under different names (British/US/international
+   pharmacopoeia). Without this map, Panadol (paracetamol) + Tylenol
+   (acetaminophen) would get a green all-clear on the #1 cause of acute
+   liver failure. Each pair is appended so BOTH names match everywhere. */
+const SYN_PAIRS = [
+  ["paracetamol", "acetaminophen"], ["salbutamol", "albuterol"],
+  ["adrenaline", "epinephrine"], ["noradrenaline", "norepinephrine"],
+  ["glibenclamide", "glyburide"], ["pethidine", "meperidine"],
+  ["lignocaine", "lidocaine"], ["frusemide", "furosemide"],
+  ["amoxycillin", "amoxicillin"], ["ciclosporin", "cyclosporine"],
+  ["phenobarbitone", "phenobarbital"], ["thyroxine", "levothyroxine"],
+  ["isoprenaline", "isoproterenol"], ["rifampicin", "rifampin"],
+  ["oestradiol", "estradiol"], ["aciclovir", "acyclovir"],
+  ["hyoscine", "scopolamine"], ["glyceryl trinitrate", "nitroglycerin"],
+  ["chlorphenamine", "chlorpheniramine"], ["beclometasone", "beclomethasone"],
+  ["indometacin", "indomethacin"], ["dimeticone", "simethicone"],
+  ["cotrimoxazole", "co-trimoxazole"], ["dextropropoxyphene", "propoxyphene"],
+  ["acetylsalicylic acid", "aspirin"], ["colecalciferol", "cholecalciferol"],
+  ["dosulepin", "dothiepin"], ["moclobemide", "moclobemide"],
+];
+function expandSynonyms(s) {
+  let out = s;
+  for (const [a, b] of SYN_PAIRS) {
+    if (out.includes(a) && !out.includes(b)) out += " " + b;
+    else if (out.includes(b) && !out.includes(a)) out += " " + a;
+  }
+  return out;
+}
 function ingredientsOf(med) {
-  return String((med && (med.generic || med.name)) || "").toLowerCase();
+  return expandSynonyms(String((med && (med.generic || med.name)) || "").toLowerCase());
 }
 function ingredientWords(med) {
   return ingredientsOf(med).split(/[^a-z]+/).filter(w => w.length > 5 && !SALTS.has(w));
@@ -1537,7 +1657,7 @@ function renderResult(med, fda, ix, vision) {
   const matched = fda && fda.matched;
   const conf = (med.confidence || "medium").toLowerCase();
   const badge = matched
-    ? '<span class="badge ok">MATCHED · OPENFDA</span>'
+    ? '<span class="badge ok">NAME FOUND · OPENFDA</span>'
     : `<span class="badge ai">AI READ · ${esc(conf.toUpperCase())} CONFIDENCE</span>`;
   const rxBadge = med.rx_only ? '<span class="badge rx">PRESCRIPTION — FOLLOW YOUR DOCTOR</span>' : "";
 
@@ -1558,8 +1678,8 @@ function renderResult(med, fda, ix, vision) {
       : `<div class="ix-note">No saved medicines to compare yet. Save the medicines you take, and every new scan will be checked against them automatically.</div>`;
   } else if (!ix.hits.length) {
     ixHtml = `
-      <div class="ix-clear"><span class="dot"></span>No known clashes with your ${ix.saved} saved medicine${ix.saved > 1 ? "s" : ""}.</div>
-      <div class="ix-note">Checked against well-known combinations. Your pharmacist knows your full picture — ask them to be sure.</div>`;
+      <div class="ix-clear"><span class="dot"></span>None of the ${IX_PAIRS.length} high-risk combinations MedLens checks matched your ${ix.saved} saved medicine${ix.saved > 1 ? "s" : ""}.</div>
+      <div class="ix-note">This built-in list covers the classic dangerous pairs only — a pharmacist checks thousands. "Not on our list" is not the same as "safe together".</div>`;
   } else {
     ixHtml = ix.hits.map(h => `
       <div class="ix-item ${h.severity === "avoid" ? "avoid" : "caution"}">
@@ -1577,7 +1697,7 @@ function renderResult(med, fda, ix, vision) {
   const fdaChip = matched
     ? (fda.setid
         ? `<span class="chip fda"><a href="https://dailymed.nlm.nih.gov/dailymed/setid.cfm?setid=${esc(fda.setid)}" target="_blank" rel="noopener">openFDA / DailyMed label${fda.cached ? " (cached)" : ""}</a></span>`
-        : `<span class="chip fda">Matched in openFDA</span>`)
+        : `<span class="chip fda">Name found in openFDA</span>`)
     : "";
   const sources = fdaChip + `<span class="chip">Read by Gemini AI</span><span class="chip">Built-in interaction table</span>`;
   const sourceNote = `<div class="ix-note">An openFDA match confirms this medicine exists in the official US label database. The plain-language explanation itself is AI-written — confirm the name on this card matches your package.</div>`;
@@ -1622,6 +1742,7 @@ function renderResult(med, fda, ix, vision) {
       } else {
         visChips.push(`<span class="chip vis">could not tell intact from taken</span>`);
       }
+      if (pills.unknown) visChips.push(`<span class="chip vis">${pills.unknown} too shiny to judge — retake without glare</span>`);
     }
     const altParts = [
       vision.deskewed ? "the straightened region outlined" : null,
