@@ -1,0 +1,11 @@
+MedLens Vision
+Copyright 2026 Rohn Ringo
+
+This product includes OpenCV (https://opencv.org), licensed under the
+Apache License 2.0. The bundled opencv.js is compiled from the OpenCV 5.x
+branch source by this project's build-opencv5.ps1 script, single-threaded
+WebAssembly configuration, with a local build fix in 3rdparty/harfbuzz
+(HB_NO_PRAGMA_GCC_DIAGNOSTIC) and a quoting fix in modules/js/CMakeLists.txt.
+
+Medicine label data is checked against openFDA (https://open.fda.gov),
+a public service of the U.S. Food and Drug Administration.
