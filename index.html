@@ -2254,6 +2254,79 @@ if (new URLSearchParams(location.search).get("selftest") === "1") {
 if (new URLSearchParams(location.search).get("livedemo") === "1") {
   addEventListener("load", () => setTimeout(runLiveVisionDemo, 300));
 }
+
+/* ================= Real-photo evaluation harness (?eval=1) =================
+   Runs every photo in corpus/ (listed in corpus/manifest.json with hand-labeled
+   ground truth) through the EXACT production pipeline and reports per-photo
+   results + aggregate metrics. This page produces the accuracy table in the
+   README — measured, not claimed. */
+async function runEval() {
+  document.body.innerHTML = `<div style="max-width:900px;margin:30px auto;font-family:monospace;font-size:13px;line-height:1.6" id="ev"><b>MedLens Vision — real-photo evaluation</b><br></div>`;
+  const el = document.getElementById("ev");
+  const isLocal = location.hostname === "localhost" || location.hostname === "127.0.0.1";
+  const ping = (m) => isLocal ? fetch("/selftest-result", { method: "POST", body: m }).catch(() => {}) : Promise.resolve();
+  const say = (h) => { el.innerHTML += h + "<br>"; };
+  let manifest;
+  try {
+    manifest = await (await fetch("corpus/manifest.json", { cache: "no-store" })).json();
+  } catch {
+    say("No corpus yet. Add photos to corpus/ and describe them in corpus/manifest.json:");
+    say('{"items":[{"file":"pink-round.jpg","kind":"blister","cells":10,"intact":8,"empty":2}]}');
+    return;
+  }
+  say(`corpus: ${manifest.items.length} photos. loading engine…`);
+  const ok = await visionWaitReady(120000);
+  if (!ok) { say("FATAL: vision engine did not load"); return; }
+  const rows = [];
+  for (const item of manifest.items) {
+    try {
+      const img = await dataUrlToImage("corpus/" + item.file);
+      /* downscale exactly like the production scan path */
+      const scale = Math.min(1, 1536 / Math.max(img.naturalWidth || img.width, img.naturalHeight || img.height));
+      const c = document.createElement("canvas");
+      c.width = Math.round((img.naturalWidth || img.width) * scale);
+      c.height = Math.round((img.naturalHeight || img.height) * scale);
+      c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+      const v = await visionAnalyze(c);
+      const p = v.pills;
+      const row = {
+        file: item.file, kind: item.kind,
+        truth: { cells: item.cells ?? null, intact: item.intact ?? null, empty: item.empty ?? null },
+        got: p ? { total: p.total, full: p.full, empty: p.empty, unknown: p.unknown || 0 } : null,
+        deskewed: v.deskewed, ms: v.ms,
+      };
+      /* scoring: a box/bottle photo counts as CORRECT when no blister is claimed */
+      row.detectOK = item.kind === "blister" ? !!p : !p;
+      row.countErr = (p && item.cells != null) ? Math.abs(p.total - item.cells) : null;
+      row.intactOK = (p && p.full !== null && item.intact != null) ? (p.full === item.intact) : null;
+      rows.push(row);
+      const verdict = row.detectOK ? (row.countErr === 0 ? "EXACT" : row.countErr != null ? `off by ${row.countErr}` : "ok") : "MISS";
+      say(`<b>${item.file}</b> [${item.kind}] truth ${item.cells ?? "-"}/${item.intact ?? "-"}/${item.empty ?? "-"} → got ${p ? `${p.total}/${p.full}/${p.empty} (unknown ${p.unknown || 0})` : "no blister"} · deskew ${v.deskewed} · ${v.ms} ms · <b>${verdict}</b>`);
+      if (v.overlayDataUrl) el.innerHTML += `<img src="${v.overlayDataUrl}" style="max-width:340px;border-radius:8px;margin:4px 0 12px">` + "<br>";
+      if (typeof ping === "function") await ping("EVAL " + JSON.stringify(row));
+    } catch (e) {
+      say(`<b>${item.file}</b> CRASHED: ${e && e.message}`);
+      rows.push({ file: item.file, crashed: true });
+    }
+  }
+  const blisters = rows.filter(r => r.kind === "blister" && !r.crashed);
+  const detected = blisters.filter(r => r.detectOK);
+  const exact = blisters.filter(r => r.countErr === 0);
+  const mae = blisters.filter(r => r.countErr != null);
+  const summary = {
+    photos: rows.length,
+    blisterDetectRate: blisters.length ? `${detected.length}/${blisters.length}`: "n/a",
+    exactCount: mae.length ? `${exact.length}/${mae.length}` : "n/a",
+    countMAE: mae.length ? (mae.reduce((s, r) => s + r.countErr, 0) / mae.length).toFixed(2) : "n/a",
+    intactExact: blisters.filter(r => r.intactOK === true).length + "/" + blisters.filter(r => r.intactOK !== null).length,
+    falseBlisterOnBoxes: rows.filter(r => r.kind !== "blister" && !r.crashed && !r.detectOK).length,
+  };
+  say(`<br><b>SUMMARY</b> ${JSON.stringify(summary)}`);
+  if (typeof ping === "function") await ping("EVAL SUMMARY " + JSON.stringify(summary));
+}
+if (new URLSearchParams(location.search).get("eval") === "1") {
+  addEventListener("load", runEval);
+}
 </script>
 </body>
 </html>

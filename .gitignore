@@ -13,3 +13,8 @@ opencv4-docs.js.bak
 
 # OpenCV 5 build workspace (huge, reproducible via build-opencv5.ps1)
 opencv5-build/
+
+# real medicine photos stay local until we decide what to publish
+corpus/*.jpg
+corpus/*.jpeg
+corpus/*.png

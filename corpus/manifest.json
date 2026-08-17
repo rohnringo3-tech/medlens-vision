@@ -1,0 +1,21 @@
+{
+  "note": "Hand-labeled ground truth. null = even a careful human cannot be certain from the photo; those fields are excluded from scoring.",
+  "items": [
+    { "file": "photo-01.jpg", "kind": "blister", "cells": null, "intact": null, "empty": null,
+      "desc": "Flamar-MX, foil BACK side with print, tilted ~30 deg, several cells torn - hard mode, count truth uncertain from photo" },
+    { "file": "photo-02.jpg", "kind": "blister", "cells": 10, "intact": 8, "empty": 2,
+      "desc": "Ibumex ibuprofen 200mg, foil BACK side with red print, 2x5, two cells torn open at left" },
+    { "file": "photo-03.jpg", "kind": "blister", "cells": 10, "intact": 8, "empty": 2,
+      "desc": "Pink round tablets, bubble FRONT side, 2x5, two right-column cells pressed out - the clean flagship case" },
+    { "file": "photo-04.jpg", "kind": "box", "cells": null, "intact": null, "empty": null,
+      "desc": "Quadrajel dental gel box, portrait, must NOT claim a blister" },
+    { "file": "photo-05.jpg", "kind": "blister", "cells": 10, "intact": 6, "empty": 4,
+      "desc": "Salmon oblong tablets, bubble FRONT, tilted, 2x5: six intact, two transparent-empty pockets, two torn-foil cells - the capsule-shape test" },
+    { "file": "photo-06.jpg", "kind": "blister", "cells": 8, "intact": null, "empty": null,
+      "desc": "Nearly finished sheet, 2x4 portrait, one red capsule remnant top-left, everything else torn - intact truth ambiguous even for humans" },
+    { "file": "photo-07.jpg", "kind": "blister", "cells": 8, "intact": null, "empty": null,
+      "desc": "Same nearly-finished sheet as photo-06, shot straighter" },
+    { "file": "photo-08.jpg", "kind": "box", "cells": null, "intact": null, "empty": null,
+      "desc": "Quadrajel box on its side, tilted - must NOT claim a blister" }
+  ]
+}
