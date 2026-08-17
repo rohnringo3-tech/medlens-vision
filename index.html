@@ -597,7 +597,7 @@
 
     <div class="steps">
       <div class="step"><div class="num">01</div><div><div class="t">Snap the label</div><div class="d">Box, bottle or pill sheet</div></div></div>
-      <div class="step"><div class="num">02</div><div><div class="t">Vision counts &amp; straightens</div><div class="d">OpenCV on your phone — finds the label, counts the pills, ~200 ms, no cloud</div></div></div>
+      <div class="step"><div class="num">02</div><div><div class="t">Vision counts &amp; straightens</div><div class="d">OpenCV on your phone — finds the label, counts the pills, seconds, no cloud</div></div></div>
       <div class="step"><div class="num">03</div><div><div class="t">AI explains, facts checked</div><div class="d">Plain-language card, name matched in openFDA</div></div></div>
     </div>
 
@@ -1237,7 +1237,8 @@ async function runLiveVisionDemo() {
       seek_doctor: [],
       confidence: "high",
       rx_only: false,
-      noSave: true
+      noSave: true,
+      visionOnly: true
     }, null, null, vision);
     show("viewResult");
   } catch (e) {
@@ -1477,11 +1478,12 @@ function dataUrlToImage(dataUrl) {
   });
 }
 function imageToImageData(el) {
-  /* hard cap at 1536px: the downscale fallback path can hand us a raw 12MP
-     photo, which would mean ~150MB of transient pixel buffers on exactly
-     the weakest phones this app targets */
+  /* hard cap at 1024px for the VISION path (Gemini still gets 1536): the
+     morphology cost grows with area × kernel and 1536px ran ~11s on real
+     photos — 1024 keeps counts identical on the corpus at a fraction of
+     the work, and protects the weakest phones this app targets */
   const w = el.naturalWidth || el.width, h = el.naturalHeight || el.height;
-  const scale = Math.min(1, 1536 / Math.max(w, h));
+  const scale = Math.min(1, 1280 / Math.max(w, h));
   const canvas = document.createElement("canvas");
   canvas.width = Math.max(1, Math.round(w * scale));
   canvas.height = Math.max(1, Math.round(h * scale));
@@ -1705,7 +1707,9 @@ function renderResult(med, fda, ix, vision) {
   /* honesty rule: a low-confidence READ must never hide behind a green badge —
      the openFDA match only proves the NAME exists, not that the photo was
      read correctly. Low confidence always warns, matched or not. */
-  const badge = matched
+  const badge = med.visionOnly
+    ? '<span class="badge ok">MEASURED ON-DEVICE · OPENCV</span>'
+    : matched
     ? (conf === "low"
         ? '<span class="badge ai">NAME IN OPENFDA · LOW-CONFIDENCE READ</span>'
         : '<span class="badge ok">NAME FOUND · OPENFDA</span>')
@@ -1750,8 +1754,13 @@ function renderResult(med, fda, ix, vision) {
         ? `<span class="chip fda"><a href="https://dailymed.nlm.nih.gov/dailymed/setid.cfm?setid=${esc(fda.setid)}" target="_blank" rel="noopener">openFDA / DailyMed label${fda.cached ? " (cached)" : ""}</a></span>`
         : `<span class="chip fda">Name found in openFDA</span>`)
     : "";
-  const sources = fdaChip + `<span class="chip">Read by Gemini AI</span><span class="chip">Built-in interaction table</span>`;
-  const sourceNote = `<div class="ix-note">An openFDA match confirms this medicine exists in the official US label database. The plain-language explanation itself is AI-written — confirm the name on this card matches your package.</div>`;
+  /* the live vision demo involves NO AI — its card must credit only what ran */
+  const sources = med.visionOnly
+    ? `<span class="chip vis">Measured by OpenCV 5 WASM — this device</span>`
+    : fdaChip + `<span class="chip">Read by Gemini AI</span><span class="chip">Built-in interaction table</span>`;
+  const sourceNote = med.visionOnly
+    ? `<div class="ix-note">Every number on this card was measured by the on-device computer-vision pipeline seconds ago. No AI, no internet, nothing pre-recorded.</div>`
+    : `<div class="ix-note">An openFDA match confirms this medicine exists in the official US label database. The plain-language explanation itself is AI-written — confirm the name on this card matches your package.</div>`;
 
   const whatItIs = `
     <div class="section">
