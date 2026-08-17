@@ -1,0 +1,1310 @@
+{
+  "summary": "Full-spectrum review of MedLens Vision: every pixel, every line, every claim",
+  "agentCount": 42,
+  "logs": [
+    "70 raw findings from 6 specialists",
+    "33/35 major+ findings confirmed; 35 minors pass through unverified"
+  ],
+  "result": {
+    "plan": {
+      "verdict": "The core OpenCV work is genuinely strong (Substance 8/10) but the entry is currently un-submittable: no public repo, the only measured accuracy numbers are the old v2 baseline, and the judge-facing surfaces actively undermine the story (the live vision demo credits Gemini, a green openFDA badge hides low-confidence reads, and analyze() runs ~11s at production resolution against a \"~200ms\" claim). Roughly a day of quick wins fixes every trust/provenance contradiction; the remaining six weeks should go eval → accuracy → corpus → repo → video, with AWS decided by ~Sep 20 either way.",
+      "quickWins": [
+        "Drop-handler: replace `if (!getKey())` with the ensureKeyThen/canScanLive() gate at index.html:1273 (reported by 3 reviewers; also add the offline toast) — 5 min",
+        "Guard the empty Interactions section like seek_doctor at index.html:1839 — 5 min",
+        "Show the low-confidence banner whenever conf==='low' regardless of openFDA match (index.html:1711) — the one-slide-takedown fix, 5 min",
+        "Shorten 'Watch it count pills — live vision demo' to 'Watch it count pills' and promote it in the button stack for keyless visitors (index.html:593, 2053) — 15 min",
+        "Add pediatric rule to the Gemini prompt: children's medicines get the 'dose depends on age/weight — ask a pharmacist' string (index.html:1584) — 10 min",
+        "Hero copy: 'name checked against the official US drug database (openFDA)' instead of 'cross-checked against official drug data' (index.html:580) — 5 min",
+        "Interaction-table data pass: colchicine+clarithromycin to its own 'avoid' pair, reword the simvastatin 20mg note, add venlafaxine/duloxetine to the bleeding pair, delete the dimeticone/simethicone and moclobemide self-pair rows — 30 min total",
+        "Split sw.js caches: opencv.js into its own long-lived 'medlens-cv-1' cache, keep both in the activate filter (sw.js:5,24,65) — 20 min",
+        "Copy corpus/*.jpg + manifest.json into deploy/dist/corpus and redeploy so live /?eval=1 stops 404ing — 15 min",
+        "Worker init deadline: postMessage({type:'init-failed'}) at vision-worker.js:32 and handle it in index.html:1433 (resolve false, terminate, null the worker) — 25 min",
+        "Settings copy: branch on PROXY_URL so the deployed site says 'Scanning already works with no key' and hide #demoEscape when canScanLive() (index.html:675,691,2041) — 25 min",
+        "toast() null-guard so reminder intervals don't corrupt selftest/eval logs (index.html:756) — 5 min",
+        "visionIsReady=false in the worker onerror handler (index.html:1440) — 2 min",
+        "Give base .btn 'border:1px solid transparent' so ghost/primary heights match — 2 min"
+      ],
+      "fixQueue": [
+        {
+          "rank": 1,
+          "title": "Low-confidence warning suppressed by openFDA name match — green badge on doubtful reads",
+          "where": "index.html:1700-1712",
+          "severity": "critical",
+          "fix": "Show the 'Not fully sure' banner whenever conf==='low' regardless of matched; on low+matched render 'NAME IN OPENFDA · LOW-CONFIDENCE READ' instead of the green badge. Also demote the HIGH state to plain 'AI READ' (uncalibrated self-rating).",
+          "effortHours": 0.25
+        },
+        {
+          "rank": 2,
+          "title": "Trust-surface quick-win sweep: drop-handler key gate, empty Interactions card, demo button label, pediatric prompt rule, hero wording, Settings proxy copy",
+          "where": "index.html:1273, 1839, 593, 1584, 580, 675/691",
+          "severity": "major",
+          "fix": "Batch the six 5-25 minute copy/guard fixes listed in quickWins — every one is a judge-visible contradiction of the app's zero-setup or honesty story, and together they cost under 2 hours.",
+          "effortHours": 1.5
+        },
+        {
+          "rank": 3,
+          "title": "Rerun the 8-photo eval on detector v3 — every number on file is v2's",
+          "where": "corpus/eval-baseline-notes.txt (labeled 'detector v2'); harness at /?eval=1",
+          "severity": "major",
+          "fix": "Run localhost:7990/?eval=1 against the corpus, record a V3 EVAL block (same per-photo format) incl. whether deskew fired and colorResolved counts (surface in out.dbg). Verify photo-03 is no longer inverted. This gates ALL detector tuning, the README table, the video, and the submission numbers. Do it before touching vision-worker.js.",
+          "effortHours": 1
+        },
+        {
+          "rank": 4,
+          "title": "Live vision demo credits Gemini for work OpenCV did",
+          "where": "index.html:1699-1705, 1745; live at /?livedemo=1",
+          "severity": "major",
+          "fix": "Add a visionOnly flag in runLiveVisionDemo; in renderResult swap the badge to 'MEASURED ON-DEVICE · OPENCV' and emit only an 'OpenCV 5 WASM — this device' source chip; drop 'Read by Gemini AI' and the AI-written note on that path. Also fix the demo stage text ('reading the drawn sheet', not 'your photo').",
+          "effortHours": 0.75
+        },
+        {
+          "rank": 5,
+          "title": "analyze() ~11s at production resolution — blows the 30s guard on the phones the app targets, vs a '~200ms' claim",
+          "where": "vision-worker.js:198, 363-384, 535-537; index.html:1482, 1504, 600",
+          "severity": "critical",
+          "fix": "Cap the worker-path image at 1024px (keep 1536 for Gemini upload); compute top-hat at quarter scale (pyrDown x2, kernel/4, pyrUp); skip the Hough pass when a contour family already passed gateUniform; replace the '~200ms' landing claim with the measured out.ms. Re-run selftest + eval to confirm identical counts.",
+          "effortHours": 3
+        },
+        {
+          "rank": 6,
+          "title": "SW versioned cache evicts the 14 MB opencv.js on every deploy + first-visit warm race",
+          "where": "sw.js:5, 21-27, 60-71; index.html:1462-1467",
+          "severity": "major",
+          "fix": "Split the engine into its own long-lived cache ('medlens-cv-1'), keep both caches in the activate filter. Then gate the idle warm-up on navigator.serviceWorker.controller (warm after .ready otherwise) and tighten the data-saver check with effectiveType 2g.",
+          "effortHours": 0.75
+        },
+        {
+          "rank": 7,
+          "title": "Public repo + LICENSE — judges cannot see the code or verify the self-built OpenCV 5 claim",
+          "where": "C:\\Users\\LEGION\\Desktop\\MedLens Vision\\.git (no remote); no LICENSE file",
+          "severity": "critical",
+          "fix": "Add Apache-2.0 LICENSE + NOTICE crediting OpenCV; gitignore the .bak files and deploy/.wrangler/cache/wrangler-account.json; verify no Co-Authored-By trailers (standing rule); push to github.com/rohnringo3-tech before Aug 26 with README, build-opencv5.ps1, corpus/ + eval notes.",
+          "effortHours": 1.5
+        },
+        {
+          "rank": 8,
+          "title": "Deploy corpus/ so live /?eval=1 works — a one-URL self-scoring accuracy page no other entrant will have",
+          "where": "deploy/dist (no corpus dir); live /corpus/manifest.json 404s",
+          "severity": "major",
+          "fix": "Copy corpus JPEGs + manifest into deploy/dist/corpus and redeploy. Also add the SW shell-branch skip for /corpus/ and no-store requests so eval runs don't pollute the app cache.",
+          "effortHours": 0.5
+        },
+        {
+          "rank": 9,
+          "title": "Worker init failure never signalled — every scan stalls the full 90s, permanently",
+          "where": "vision-worker.js:30-34; index.html:1432-1446",
+          "severity": "major",
+          "fix": "postMessage({type:'init-failed'}) in the deadline branch; on the page resolve visionReadyPromise false, terminate and null visionWorker so the next scan retries fresh. Add visionIsReady=false to onerror too.",
+          "effortHours": 0.5
+        },
+        {
+          "rank": 10,
+          "title": "Texture-fallback polarity still hard-codes the inversion the eval proved wrong (photo-03 class)",
+          "where": "vision-worker.js:421-422, 171-183",
+          "severity": "major",
+          "fix": "Use color-resolved cells as labeled anchors: when both classes have color anchors, assign unresolved cells to the nearer mean-sharpness class; one-sided anchors set the polarity side; zero anchors keep the default plus a low-confidence flag the UI hedges. Do AFTER the v3 eval shows whether it still binds. photo-03 is the regression gate — it must pass before any demo/video.",
+          "effortHours": 2
+        },
+        {
+          "rank": 11,
+          "title": "Winner-take-all polarity vote caps counts on mixed sheets — union bright+dark families instead",
+          "where": "vision-worker.js:368-387",
+          "severity": "major",
+          "fix": "When both gated families survive with agreeing median radii, dedupe their union (center-distance rule, keep higher fill-ratio), re-gate, use it when larger. Tag c.src bright/dark/both and feed it to the classifier as an intact/empty prior. Highest-yield count-accuracy change; validate against the fresh eval.",
+          "effortHours": 4
+        },
+        {
+          "rank": 12,
+          "title": "Color classifier: absolute 8-bit thresholds vs a single GLOBAL sheet reference — not illumination-invariant",
+          "where": "vision-worker.js:404-416, 289-308",
+          "severity": "major",
+          "fix": "Compare each cell to its OWN 16-point ring median (fallback to global under 10 valid samples) to cancel lighting gradients; make dV/colorDist thresholds relative to max(ref.v,60); add the dSat>-0.05 clause to block the bright-transparent-pocket false pill.",
+          "effortHours": 3
+        },
+        {
+          "rank": 13,
+          "title": "All-empty packs return null — the most safety-relevant verdict is the one the pipeline can't produce",
+          "where": "vision-worker.js:310-323; eval photos 06/07",
+          "severity": "major",
+          "fix": "Rescue pass when candidates is empty: relaxed dark-contour gates (fill>=0.35, aspect<=4.0), then demand grid structure via gridRecover clustering (rows>=2, cols>=2, kept>=0.6*grid, blob dim 0.3-0.9*pitch to keep box FPs at 0) and return an 'empty or nearly empty pack' estimated verdict.",
+          "effortHours": 3
+        },
+        {
+          "rank": 14,
+          "title": "gridRecover forces recovered cells to 'empty' without sampling a pixel",
+          "where": "vision-worker.js:328-352; index.html empty count feeds the overlay",
+          "severity": "major",
+          "fix": "Before accepting a recovered position, compare disc mean vs ring mean gray: accept empty only if disc <= ring+10; disc > ring+18 means a likely missed pill — mark unknown, never empty; otherwise drop. Any single missed detection currently becomes a false 'pill taken' in an adherence app.",
+          "effortHours": 2
+        },
+        {
+          "rank": 15,
+          "title": "Foil-back bump pass (photo-02: 4/10) — blur-then-tophat at lowered bias",
+          "where": "vision-worker.js:186-247",
+          "severity": "major",
+          "fix": "Fourth detection pass: GaussianBlur at ksize~minDim/16 (odd) to erase print strokes, then top-hat+black-hat on the blurred image with bias 8, into the same gate/vote. Optional Laplacian-density trigger to skip clean fronts. Measure on the rerun eval before and after.",
+          "effortHours": 4
+        },
+        {
+          "rank": 16,
+          "title": "README hides the project's best rigor + the OpenCV 5 story is invisible in the app",
+          "where": "README.md:43 (claims corpus doesn't exist), lines 31-39; app copy says only 'OpenCV'",
+          "severity": "major",
+          "fix": "Rewrite Verification: selftest, real-photo corpus with null-truth honesty convention, measured baseline table, diagnosis, v3 numbers, live ?eval=1 link. Add an app footer line 'Engine: OpenCV 5, compiled from the 5.x branch — 14 MB single-threaded WASM' and a 2-min pthreads-hang repro in the README so the claim is verifiable.",
+          "effortHours": 1.5
+        },
+        {
+          "rank": 17,
+          "title": "Grow the corpus from n=3 scoreable to 30+ photos",
+          "where": "corpus/manifest.json (only photos 02/03/05 fully labeled)",
+          "severity": "major",
+          "fix": "Multiple brands per shape class, foil-back + bubble-front, 3 lighting conditions, tilted + straight, more negatives (boxes, bottles, loose pills). Keep the null-truth convention. Pharmacy shelves + family cabinets suffice. Spread over 2-3 weeks; must land before the video.",
+          "effortHours": 8
+        },
+        {
+          "rank": 18,
+          "title": "SIMD wasm build — free 2-4x on the morphology that dominates analyze()",
+          "where": "build-opencv5.ps1:94",
+          "severity": "major",
+          "fix": "Second artifact with --simd (opencv-simd.js); feature-detect with the canonical WebAssembly.validate SIMD probe in vision-worker.js, fall back to scalar; extend the sw.js opencv route to match both filenames. Pairs with the resolution fix to reach low hundreds of ms.",
+          "effortHours": 3
+        },
+        {
+          "rank": 19,
+          "title": "First scan serializes a 90s engine wait before the Gemini call even starts",
+          "where": "index.html:1346-1360",
+          "severity": "major",
+          "fix": "Cap the scan-path engine wait at ~15s when !visionIsReady (keep 90s for /?livedemo=1 where vision IS the product), assemble the prompt after Promise.race([visionPromise, sleep(15000)]). Also move startStages(VISION_STAGES) inside the engineReady branch so skipped-vision scans don't claim vision ran.",
+          "effortHours": 1.5
+        },
+        {
+          "rank": 20,
+          "title": "Demo video — script and shoot only after v3 numbers + corpus land",
+          "where": "roadmap; submissions open Aug 26, due Oct 26",
+          "severity": "major",
+          "fix": "2-3 min shot list: real phone on the photo-03-class sheet (count + overlay), glare abstention, /?selftest=1 ten PASSes, live /?eval=1 scoring itself, 20s on the self-built OpenCV 5 engine + single-thread tradeoff, Panadol+Tylenol catch. Thesis line: 'AI reads and explains, deterministic code decides.'",
+          "effortHours": 5
+        },
+        {
+          "rank": 21,
+          "title": "AWS pillar: build a minimal S3+Lambda eval backbone or delete every AWS promise — decide by ~Sep 20",
+          "where": "README.md:9, 50; blocker is parent's card",
+          "severity": "major",
+          "fix": "If the card lands: S3 corpus bucket + a Lambda that runs/hosts the eval is one weekend and the competition page requires a planned AWS architecture. If not by ~Sep 20: strip 'powered by AWS' and the backbone promise entirely — no mention beats a broken one. Never let this block eval/corpus/video.",
+          "effortHours": 6
+        },
+        {
+          "rank": 22,
+          "title": "Minor detector instrumentation + robustness batch (do alongside items 10-15)",
+          "where": "vision-worker.js:66-113 (Canny fallback), 249-264 (Hough), 317-322 (dedupe order), 374-384 (stale _dbg), 376-384 (retry trigger)",
+          "severity": "minor",
+          "fix": "Move _dbg capture after the retry and record the winning pass; add the permissive Canny(15,45) deskew retry with dbg tagging; run both kernel scales unconditionally with a grid-consistency tiebreak; sort dedupe by fill ratio; adapt or drop the Hough pass based on which pass wins in the rerun eval.",
+          "effortHours": 3
+        },
+        {
+          "rank": 23,
+          "title": "Result-screen polish batch: badge wrap, chip soup, overlay letterbox, touch targets, bottom-sheet modal, type scale",
+          "where": "index.html CSS (313-400, 475-493, and the 10-size font scale)",
+          "severity": "minor",
+          "fix": "Column .med-head under 400px; reserve chips for vision stats (upgrade to a 3-figure stat row), fold strength/form into the generic line; natural-aspect overlay image; min-height 44px on .btn/.slot-t; edge-to-edge mobile sheet with grab handle; collapse to a 5-step type scale and two tracking values.",
+          "effortHours": 3
+        },
+        {
+          "rank": 24,
+          "title": "Reliability minors: abort in-flight Gemini on cancel, slot-toggle identity race, SW navigation cache key, refill forecast with unknown cells, FDA excerpt labeling, proxy rate-limiter ordering, install prompt",
+          "where": "index.html:1295-1299/1955-1967/1764-1788/1652-1656; sw.js:81-87; deploy/worker.js:13-43",
+          "severity": "minor",
+          "fix": "AbortController per scan wired to scanGen bumps; capture med identity (not index) across the Notification await; normalize navigation cache key to ./index.html; suppress or range the refill line when pills.unknown>0; label FDA warnings as excerpts; reorder the proxy limiter (charge only pre-upstream, evict stale not clear(), raise to ~100/h so a NAT'd judging venue never 429s); capture beforeinstallprompt + iOS Share-sheet one-liner.",
+          "effortHours": 4
+        }
+      ]
+    },
+    "confirmed": [
+      {
+        "title": "Live vision demo result is branded \"AI READ · HIGH CONFIDENCE\" + \"Read by Gemini AI\" — but no AI ran",
+        "where": "index.html:1699-1705 (badge), index.html:1745 (sources chips), verified live at /?livedemo=1",
+        "severity": "major",
+        "problem": "The judge-facing OpenCV proof screen renders the fallback badge 'AI READ · HIGH CONFIDENCE' and a 'Read by Gemini AI' source chip, because renderResult has no vision-only mode. The one screen that should scream 'pure OpenCV, on-device, no cloud' instead credits Gemini for work it never did. OpenCV Foundation judges will notice — it both misstates provenance and buries the competition's core claim.",
+        "fix": "In renderResult, when med.demo && vision (or add a med.visionOnly flag set in runLiveVisionDemo), swap the badge to something like 'MEASURED ON-DEVICE · OPENCV' (reuse .badge.ok styling) and emit sources chips 'OpenCV 5 WASM — this device' only; drop the 'Read by Gemini AI' and 'Built-in interaction table' chips and the openFDA source note for that path.",
+        "specialist": "pixel-perfectionist",
+        "verdict": {
+          "real": true,
+          "reason": "Confirmed in code: runLiveVisionDemo (index.html:1214-1250) runs only the OpenCV worker (no Gemini) and passes a hardcoded med with confidence:\"high\" and fda=null to renderResult; since matched is false, line 1702-1704 renders the badge \"AI READ · HIGH CONFIDENCE\", and line 1745 unconditionally emits the \"Read by Gemini AI\" source chip, with line 1746's note falsely calling the hand-written card \"AI-written\". No visionOnly branch exists anywhere. Minor overstatement in the finding: the OpenCV attribution is not fully buried — line 1801 says \"Measured by OpenCV... no AI guessing\" — but that makes the card self-contradictory (AI READ badge + Read by Gemini AI chip vs no-AI note) on the judge-facing proof screen, which is worse for a provenance-centered competition entry. The proposed fix (branch badge/sources on the demo+vision path) is correct.",
+          "severityAdjust": "major"
+        }
+      },
+      {
+        "title": "Desktop drag-and-drop demands a Gemini key even though the deployed proxy makes keyless scanning work",
+        "where": "index.html:1273",
+        "severity": "major",
+        "problem": "The drop handler gates on `if (!getKey())` while every other entry point uses ensureKeyThen/canScanLive(), which honors PROXY_URL. On the live workers.dev site a keyless visitor (i.e., a judge at a desk) who drags a pill-sheet photo onto the scanzone is blocked with 'Add your free Gemini key in Settings first' and thrown into Settings — even though clicking 'Choose photo' with the exact same file would scan fine.",
+        "fix": "Replace the getKey() check in the drop handler with the same ensureKeyThen guard: `if (!canScanLive()) { toast(...); openSettings(); return; }` — or simply route the dropped file through ensureKeyThen(() => handleImage(f)).",
+        "specialist": "pixel-perfectionist",
+        "verdict": {
+          "real": true,
+          "reason": "Confirmed in index.html: the drop handler (line 1273) gates on raw getKey() while every other scan entry point (lines 1202-1206, 1927) uses ensureKeyThen -> canScanLive(), which honors PROXY_URL (\"/api/gemini\" on the deployed site, line 717). The downstream scanFromDataUrl (line 1334) and the API call (lines 1552-1555) are already proxy-aware, so a keyless drop would scan fine if not for this stale guard. On the live site a keyless desktop visitor who drags an image is shown a factually wrong \"Add your free Gemini key\" toast and forced into Settings, while the identical file via \"Choose photo\" scans successfully. Proposed fix matches the existing pattern and is correct.",
+          "severityAdjust": "major"
+        }
+      },
+      {
+        "title": "Settings sheet copy contradicts the deployed zero-setup proxy",
+        "where": "index.html:675 and index.html:691, live Settings modal",
+        "severity": "major",
+        "problem": "Settings says a Gemini key 'Enables live camera scanning… without it, MedLens runs in demo mode', and the escape hatch adds 'The full drug-clash demo needs no key at all.' On the deployed site this is false — keyless live scanning works through the Worker proxy. A judge reading Settings concludes real scanning needs signup, which kills the app's best selling point (zero-setup). The paragraph is also 3 sentences of setup instructions styled at 13.5px — heavy for a modal.",
+        "fix": "Branch the copy on PROXY_URL: when the proxy exists, retitle the field 'Use your own Gemini key (optional)' with one line: 'Scanning already works with no key — add your own to lift the shared rate limit. Stored only on this device.' Keep the current copy only for localhost/BYOK builds, and hide #demoEscape when canScanLive() is true.",
+        "specialist": "pixel-perfectionist",
+        "verdict": {
+          "real": true,
+          "reason": "Confirmed in source: index.html:675 statically says \"without it, MedLens runs in demo mode\" and :691 says \"The full drug-clash demo needs no key at all\", while :717/:742 make keyless live scanning work on the deployed origin via the /api/gemini Worker proxy (verified in deploy/worker.js:21-47). #demoEscape visibility (index.html:2041) toggles on getKey() rather than canScanLive(), so the misleading paragraph shows to every keyless deployed visitor; the save toast at :2032 (\"Saved — demo mode (no key)\") repeats the false claim. The rest of the UI (refreshKeyUI, :2047-2056) IS proxy-aware, proving the modal copy was simply never updated. Slight overstatement only in \"kills the best selling point\" — the home screen still communicates keyless scanning correctly — but the contradiction is real, user-facing, and targets the app's core differentiator for competition judges.",
+          "severityAdjust": "major"
+        }
+      },
+      {
+        "title": "Empty \"Interactions\" section renders as a bare heading on the live vision demo",
+        "where": "index.html:1839-1842, verified live at /?livedemo=1 (section textLen = 12, zero <li>)",
+        "severity": "major",
+        "problem": "runLiveVisionDemo passes interactions: [], and unlike seek_doctor (which is guarded at line 1833), the Interactions section renders unconditionally — so the demo result shows a white card containing only the uppercase heading 'INTERACTIONS' and nothing else. An empty labeled card on the flagship demo screen reads as a rendering bug.",
+        "fix": "Guard it the same way as seek_doctor: `${med.interactions && med.interactions.length ? `<div class=\"section\">…</div>` : \"\"}` — this also protects real scans where Gemini returns an empty interactions array.",
+        "specialist": "pixel-perfectionist",
+        "verdict": {
+          "real": true,
+          "reason": "Verified in index.html: runLiveVisionDemo passes interactions: [] (line 1236); the Interactions section at 1839-1842 renders unconditionally while seek_doctor is guarded at 1833; list([]) returns \"\" so the output is a styled white .section card (CSS 337-347, uppercase h3) containing only the heading. No CSS or normalization hides it — the Gemini normalizer (line 1626) even produces [] for real scans, so empty real results hit it too. The bare card appears on every run of the judge-facing /?livedemo=1 flow.",
+          "severityAdjust": "major"
+        }
+      },
+      {
+        "title": "\"Watch it count pills — live vision demo\" button: too long, wraps to two lines, buried 4th in the stack, below the fold",
+        "where": "index.html:593, scan screen at 375×812 (measured: 286×66px @ y=789, viewport 812)",
+        "severity": "major",
+        "problem": "The 38-character label is the only button in the row that wraps to two lines on a 375px phone, and as the 4th stacked pill it sits at y=789 — effectively below the fold on an iPhone-sized screen. The competition's proof-of-vision demo is the least visible action on the page, and the em-dash compound label ('action — category') reads like documentation, not a button.",
+        "fix": "Shorten to 'Watch it count pills' (the .zl2 hint or a small caption under the button can carry 'live on-device vision'). For keyless visitors, promote it: refreshKeyUI already swaps btn-primary onto btnSample when !has — give the primary treatment (or second position) to btnLiveDemo instead, since it is the stronger judge-facing demo.",
+        "specialist": "pixel-perfectionist",
+        "verdict": {
+          "real": true,
+          "reason": "Reproduced exactly on the live site at 375x812: btnLiveDemo renders 285x66 at y=790 (finding said 286x66 @ y=789), is the only button wrapping to two lines (others are 45-47px tall), and sits 4th in the stack with only ~22px visible above the 812px fold. Source (index.html:589-594) confirms the 38-char em-dash label and no mobile CSS override; the suggested fix hook (refreshKeyUI swapping btn-primary at lines 2053-2054) exists as described. Given the live vision demo is the judge-facing proof for the OpenCV competition, its near-invisibility on phones justifies major.",
+          "severityAdjust": "major"
+        }
+      },
+      {
+        "title": "Drag-and-drop gate checks getKey() instead of canScanLive(), locking out proxy users",
+        "where": "index.html:1273",
+        "severity": "major",
+        "problem": "Every other scan entry point (btnScan, btnGallery, scanzone click) goes through ensureKeyThen() which uses canScanLive() (personal key OR the deployed /api/gemini proxy). The desktop drag-and-drop handler alone tests `if (!getKey())` and bounces the user to Settings with 'Add your free Gemini key'. On the live workers.dev site — the exact configuration judges will use, on desktop, where drag-and-drop is the natural gesture — dropping a photo refuses to scan even though the zero-setup proxy is available.",
+        "fix": "Replace the check at line 1273 with the same gate as the other paths: `if (!canScanLive()) { toast(...); openSettings(); return; }` — or simply route the drop through ensureKeyThen(() => handleImage(f)) so the offline check is applied consistently too.",
+        "specialist": "code-surgeon",
+        "verdict": {
+          "real": true,
+          "reason": "Verified in index.html: drop handler (line 1273) gates on getKey() (localStorage only) while every other scan entry (lines 1202-1206, 1927) uses ensureKeyThen -> canScanLive() (line 742: key OR PROXY_URL). On the deployed workers.dev site PROXY_URL='/api/gemini' (line 717), so proxy-only desktop users dropping an image are wrongly bounced to Settings told to add a key, even though scanFromDataUrl (line 1334) would accept the scan via the proxy. Slightly tempered by an easy workaround (clicking the same zone works), but it deterministically breaks the natural desktop gesture on the exact config judges use and the error message contradicts the zero-setup claim.",
+          "severityAdjust": "major"
+        }
+      },
+      {
+        "title": "Worker init failure is never signalled to the page — every scan stalls the full 90 s, permanently",
+        "where": "vision-worker.js:30-34 and index.html:1432-1446, 1452-1459",
+        "severity": "major",
+        "problem": "When the 30 s poll deadline in the worker fires (opencv.js loaded but `cv`/`Module` never materialized — the exact build-shape drift the comment at vision-worker.js:15-16 warns about, or a wedged WASM instantiation), the worker sets `failed = true` and answers queued scans, but posts no message of any kind on its own. The page's visionReadyPromise only resolves on a 'ready' message or a worker `error` event, so visionWaitReady(90000) burns the entire 90 s showing 'Downloading the vision engine' before every scan. Worse, the failed worker is never terminated or nulled (onerror never fired), so `visionWorker` stays set and every subsequent scan in the session pays the same 90 s stall.",
+        "fix": "In the deadline branch (vision-worker.js:32) add `postMessage({ type: \"init-failed\" })`. In the page's onmessage handler (index.html:1433), handle it: resolve visionReadyPromise with false, terminate the worker, and set visionWorker = null so the next scan retries with a fresh worker instead of waiting on a corpse.",
+        "specialist": "code-surgeon",
+        "verdict": {
+          "real": true,
+          "reason": "Verified line-by-line: the worker's 30s init deadline (vision-worker.js:30-34) posts no message unless scans were already queued, and the page never queues scans pre-readiness since visionAnalyze runs only after visionWaitReady(true). visionReadyPromise resolves only on a 'ready' message or worker onerror (index.html:1432-1446), neither of which fires in this branch, so visionWaitReady(90000) burns the full 90s per scan (1222, 1347; 120s in selftest). The worker is never terminated/nulled outside onerror, so the stall repeats every scan all session. Reachability holds: opencv.js is a single 14MB embedded-wasm file, so importScripts network failures DO fire onerror (handled), but async WASM instantiation failure (e.g. OOM on the low-end Android devices the app explicitly targets) rejects inside a promise chain and never reaches the parent error event — exactly the silent branch. Fix as proposed is correct.",
+          "severityAdjust": "major"
+        }
+      },
+      {
+        "title": "Cache version bump evicts the immutable 14 MB opencv.js — full re-download on every app update",
+        "where": "sw.js:5, sw.js:21-27, sw.js:60-71",
+        "severity": "major",
+        "problem": "opencv.js is stored in the same versioned cache ('medlens-vision-v5') as the shell, and the activate handler deletes every cache whose name isn't the current one. The name is already at v5, so version bumps are routine — and each one throws away the 14 MB WASM engine and forces a complete re-download, exactly the two-parallel-11MB-downloads-on-3G scenario the comment at sw.js:6-8 says the design exists to prevent. Any user (or judge) who visited before a redeploy pays 14 MB again on their next visit.",
+        "fix": "Move opencv.js into a separate long-lived cache (e.g. OPENCV_CACHE = 'medlens-opencv-1', bumped only when the engine binary actually changes). In the activate handler, keep both CACHE and OPENCV_CACHE when filtering keys to delete; in the opencv.js fetch branch, open OPENCV_CACHE instead of CACHE.",
+        "specialist": "code-surgeon",
+        "verdict": {
+          "real": true,
+          "reason": "Confirmed in C:\\Users\\LEGION\\Desktop\\MedLens Vision\\sw.js: opencv.js is written to the single versioned cache 'medlens-vision-v5' (line 65), install pre-caches only SHELL which excludes opencv.js (lines 9-10), and activate deletes every cache != CACHE (line 24) with no migration — so each version bump (already at v5) evicts the 13.4 MB engine. One nuance the finding overstates: the live Worker serves opencv.js with ETag + 'Cache-Control: public, max-age=0, must-revalidate', so the SW's fallback fetch can revalidate via the browser HTTP cache and get a 304 with zero re-transfer — desktop judges revisiting soon after a redeploy likely pay nothing. But that rescue is unreliable exactly where it matters: the SW serves cache-first forever after first download, so the HTTP-cache entry goes cold and is a prime LRU eviction target on the low-end Android/3G devices the app targets; and must-revalidate means offline vision genuinely breaks after every SW bump until a successful online re-fetch, contradicting the offline design goal stated at sw.js:3. The two-cache fix is correct and minimal. Real finding, severity major stands (impact wording slightly overstated for desktop, fully valid for the app's stated audience).",
+          "severityAdjust": "major"
+        }
+      },
+      {
+        "title": "Winner-take-all polarity vote structurally caps the count on mixed sheets (HIGHEST-YIELD CHANGE #1)",
+        "where": "C:\\Users\\LEGION\\Desktop\\MedLens Vision\\vision-worker.js:368-387",
+        "severity": "major",
+        "problem": "countPills gates bright, dark, and Hough families separately and keeps only the most populous ONE. But on a partially-used sheet the intact pills and the emptied cells have opposite top-hat polarity: shiny pills pop in the bright (TOPHAT) pass, torn/pressed-out holes pop in the dark (BLACKHAT) pass. A 6-intact/4-torn sheet can therefore never reach 10 from a single pass — the vote discards the complementary half. This is consistent with the corpus: photo-03 got 7/10 and photo-02 got 4/10 (both mixed sheets), while photo-05's 10/10 EXACT is the case where one polarity happened to capture everything. Count accuracy (exact 1/3, MAE 3.0) is the headline metric and this is its ceiling.",
+        "fix": "Union the gated bright and dark families instead of picking one. After gateUniform: if both gb and gd survive and their median radii agree within 1.5x, build union = dedupe(gb ∪ gd) using the existing center-distance rule (< 0.6*(r_a+r_b), keep the higher fill-ratio duplicate), re-run gateUniform on the union, and use it when its size exceeds max(|gb|,|gd|) and ≤ 30. Tag each cell with its source (c.src = 'bright'|'dark'|'both'); a dark-only cell carries an empty prior that the color classifier can confirm cheaply (emptyEv threshold relaxed to colorDist < 24 for dark-sourced cells), and a bright-only cell carries an intact prior. This turns polarity from a discarded vote into classification evidence.",
+        "specialist": "vision-scientist",
+        "verdict": {
+          "real": true,
+          "reason": "Verified at vision-worker.js:368-387: bright/dark/Hough families are gated separately and only the most populous survives (candidates[0]); the only merge anywhere is gridRecover's concat at line 390 — bright∪dark union genuinely never happens, and torn holes found by the dark pass are discarded when bright wins. The gap binds in the common sequential-use pattern: gridRecover (lines 344-345) only fills positions whose row AND column already exist, so photo-03's whole-column pressed-out cells (per manifest) were unrecoverable → 7/10. BUT the finding overstates: (1) it ignores gridRecover entirely, which recovers scattered torn cells and sits three lines below the cited code; (2) \"a 6-intact/4-torn sheet can never reach 10\" is directly contradicted by photo-05 — exactly a 6i/4e mixed sheet — scoring 10/10 EXACT in the corpus; (3) photo-02's 4/10 is misattributed — the corpus notes diagnose it as foil-back bumps missed (weak-contrast detection failure), not the polarity vote. Real, high-yield design limitation on the headline metric, but not an absolute structural ceiling → major, not critical.",
+          "severityAdjust": "major"
+        }
+      },
+      {
+        "title": "Foil-back sheets need a blur-then-tophat bump pass, not the raw-intensity pass (HIGHEST-YIELD CHANGE #2)",
+        "where": "C:\\Users\\LEGION\\Desktop\\MedLens Vision\\vision-worker.js:186-247 (detectCellsByContour), eval photo-02",
+        "severity": "major",
+        "problem": "Photo-02 (Ibumex foil BACK, red print, 10 cells) got 4/10. On the printed back, the pill signal is a smooth low-frequency shading bump, while the printed text is high-frequency, high-contrast clutter. The current top-hat runs on raw gray, so Otsu locks onto the print strokes (the strongest bright/dark blobs at sub-pill scale), and the subtle bump shading never separates. No amount of threshold tuning fixes this because the print and the bumps live at different spatial frequencies but the same intensity range.",
+        "fix": "Add a fourth detection pass: (1) GaussianBlur gray with ksize = round(minDim/16) forced odd (sigma auto) — this erases print strokes (~minDim/100 wide) while pill bumps (~minDim/8 diameter) survive as smooth blobs; (2) run the existing detectCellsByContour top-hat AND black-hat on the blurred image with bias lowered from 15 to 8 (bump contrast after blur is ~10-20 gray levels, so the Otsu floor must drop); (3) feed the results into the same gateUniform + populous/union vote. Cheap trigger heuristic if you want to skip it on clean fronts: run it only when fraction of pixels with |3x3 Laplacian| > 40 exceeds ~6% (printed-foil signature). Classification on these sheets: bump-detected cell = intact, dark irregular blob at a grid position = torn/empty.",
+        "specialist": "vision-scientist",
+        "verdict": {
+          "real": true,
+          "reason": "Verified against vision-worker.js: the top-hat/black-hat at line 201 runs on raw gray with no pre-blur, bias=15 at all call sites (363/365/380/381), and no blurred/bump-detection pass exists anywhere. Eval data confirms photo-02 (Ibumex foil back, 10 cells per manifest.json) scored 4/10 — the largest error in the baseline — and the author's own eval notes diagnose the same root cause (\"foil-BACK sheets need shading-based bump detection\") without any implementation. The frequency-separation mechanism claimed (print survives top-hat and captures Otsu; low-contrast bumps fall below threshold; print blobs then rejected by the area filter at line 234) is consistent with the code and the observed result. Severity trimmed to major: it is an untested enhancement proposal for a known, documented limitation affecting one eval photo, not a regression or crash — but it targets the highest-impact accuracy gap.",
+          "severityAdjust": "major"
+        }
+      },
+      {
+        "title": "The cited v3 metrics are actually the v2 baseline — rerun the 8-photo eval before tuning anything",
+        "where": "C:\\Users\\LEGION\\Desktop\\MedLens Vision\\corpus\\eval-baseline-notes.txt:1",
+        "severity": "major",
+        "problem": "The notes header reads 'BASELINE EVAL 2026-08-17 (8 real photos, detector v2 + OpenCV 5)' and its summary line (detect 4/6, exact 1/3, MAE 3.00) is identical to the numbers being attributed to detector v3. There is no post-v3 eval on disk. That means it is currently unknown whether the color-evidence classifier actually fixed the photo-03 inversion, whether gradient-percentile Canny made deskew fire above 0/8, or whether v3 regressed photo-05's exact count. Any parameter tuning done now would be tuned against stale failure modes.",
+        "fix": "Rerun all 8 corpus photos through the live v3 worker (the /?livedemo=1 path or a small Node harness against vision-worker.js) and append a 'V3 EVAL' block to eval-baseline-notes.txt with the same per-photo format, including whether deskew (out.deskewed) fired and how many cells were resolved by 'color' vs texture per photo (c.resolved is already tracked — surface colorResolved in out.dbg). Only then apply findings 1 and 2.",
+        "specialist": "vision-scientist",
+        "verdict": {
+          "real": true,
+          "reason": "Verified on disk: eval-baseline-notes.txt:1 explicitly labels the run \"detector v2 + OpenCV 5\", and its summary line (detect 4/6, exact 1/3, MAE 3.00) is identical to the numbers being attributed to v3. Timestamps confirm the eval (11:15 PM) predates the current vision-worker.js (11:29 PM), whose v3 code (colorResolved/color-evidence at lines 406-428) implements exactly the fixes prescribed in the notes' DIAGNOSIS line — the eval motivated v3, it did not measure it. No post-v3 eval artifact exists anywhere in the project (corpus/, root, deploy/dist all checked). v3's effect on the photo-03 inversion, deskew firing, and photo-05 exact count is genuinely unmeasured, so tuning now would target stale failure modes.",
+          "severityAdjust": "major"
+        }
+      },
+      {
+        "title": "Color-classifier thresholds are absolute 8-bit magic numbers against a GLOBAL sheet reference — not illumination-invariant",
+        "where": "C:\\Users\\LEGION\\Desktop\\MedLens Vision\\vision-worker.js:404-416 (thresholds), 289-308 (sheetColorRef)",
+        "severity": "major",
+        "problem": "dV > 18, dV < -30, colorDist < 18 are raw 0-255 units: in a dim photo the whole dynamic range compresses and these become effectively 2-3x stricter; in bright sun they become loose. Worse, the reference is one global per-channel median of all rings, so a lighting gradient across the sheet (universal in handheld phone photos) makes cells at the far end sit 20-40 RGB units from the 'sheet color' while still being sheet — the colorDist < 18 empty path essentially never fires under gradients, silently dumping cells back onto the texture fallback the color tier was built to replace. The dSat 0.12 pill threshold is the one defensible number (saturation is already ratio-normalized). Also: pillEv = dV > 18 alone means a transparent EMPTY pocket showing bright white table reads as a pill — the exact off-by-one on photo-05 (called 7i/3e vs truth 6i/4e).",
+        "fix": "(1) Make the reference LOCAL: compute the 16-point ring median per cell (same 1.35r ring already sampled) and compare each cell to its OWN ring, falling back to the global median only when a cell's ring yields < 10 valid samples — this cancels illumination gradients exactly. (2) Make thresholds relative: pillEv = dSat > 0.12 || (dV > 0.10 * max(ref.v, 60) && dSat > -0.05); emptyEv = dV < -0.18 * max(ref.v, 60) || (colorDist < 0.10 * max(ref.v, 60) && dSat < 0.08). The dSat > -0.05 clause on the brightness path blocks the bright-but-desaturated transparent-pocket false positive from photo-05.",
+        "specialist": "vision-scientist",
+        "verdict": {
+          "real": true,
+          "reason": "Code claims verified: thresholds at vision-worker.js:413-414 are raw 0-255 constants (dV>18, dV<-30, colorDist<18) and sheetColorRef (289-308) is one global per-channel median pooled across all cells' rings — no local reference, so illumination gradients both starve the colorDist empty path and let dV>18 false-fire pill on bright-end empty cells. However two elements are overstated: (1) the photo-05 7i/3e attribution is WRONG — eval-baseline-notes.txt line 1 dates it to detector v2, and git shows the color code only landed in v3 (commit 5238bae) afterward; that miscount was produced by the old texture classifier. (2) The bright-white-table false positive is partially mitigated: cellColorStats excludes pixels >=250 and null-falls-back to texture below 8 samples, so only mid-bright (200-249) tables trigger it. The empty-path failure also degrades gracefully to the documented tier-2 texture fallback rather than misclassifying. Core illumination-invariance defect stands and the local-ring-reference fix is sound; evidence overreach noted but classification is the eval's proven weakest link (intact-exact 0/3), so severity stays major.",
+          "severityAdjust": "major"
+        }
+      },
+      {
+        "title": "Texture fallback still hard-codes the polarity (empty = sharper) that the eval proved inverts",
+        "where": "C:\\Users\\LEGION\\Desktop\\MedLens Vision\\vision-worker.js:421-422, 171-183 (largestGapThreshold)",
+        "severity": "major",
+        "problem": "Eval DIAGNOSIS line 10: the intact=smooth assumption INVERTS on glossy colored pills vs smooth foil pockets (the photo-03 1i/6e disaster). v3 added the color tier, but every cell the color tier cannot resolve (white pills on silver foil — the most common blister in the world — where dSat≈0 and dV is small) falls to largestGapThreshold with `c.empty = c.sharp > thr`, the same fixed polarity. The known failure mode is dormant, not fixed, and will resurface on exactly the sheets color cannot help with.",
+        "fix": "Anchor the polarity with the color-resolved cells as labeled examples: when colorResolved cells exist on both sides (>= 1 intact and >= 1 empty), compute mean sharpness of each color-labeled class and assign unresolved cells to the nearer class — the sheet itself tells you which side is which. With color anchors on only one side, label unresolved cells on that anchor's side of the gap with the anchor's class and the far side with the opposite. Only when colorResolved == 0 keep the current default polarity, and in that case set a low-confidence flag so the UI hedges the intact/empty split.",
+        "specialist": "vision-scientist",
+        "verdict": {
+          "real": true,
+          "reason": "Verified in C:\\Users\\LEGION\\Desktop\\MedLens Vision\\vision-worker.js: line 422 (`c.empty = thr !== null && c.sharp > thr`) applies the fixed sharper=empty polarity to every cell the color tier leaves unresolved, and largestGapThreshold (lines 171-183) picks only the split point, not the side. colorResolved is never used to anchor polarity — only to gate the all-abstain case at line 428. The eval file corpus\\eval-baseline-notes.txt line 10 explicitly states this polarity assumption \"INVERTS on glossy colored pills vs smooth foil pockets -> photo-03 disaster\" (photo-03: 1 intact/6 empty vs truth 8i/2e). The color-tier thresholds (dSat > 0.12, dV > 18 / dV < -30) by construction cannot resolve low-saturation white-pill-on-foil cells with small brightness deltas, so those fall to the same proven-invertible polarity. Finding is accurate, not handled, and not overstated.",
+          "severityAdjust": "major"
+        }
+      },
+      {
+        "title": "All-empty packs return null — accept a torn-cell family via the grid invariant",
+        "where": "C:\\Users\\LEGION\\Desktop\\MedLens Vision\\vision-worker.js:310-323 (gateUniform), eval photos 06/07",
+        "severity": "major",
+        "problem": "Photos 06/07 (nearly-finished 2x4 sheet) detect nothing: torn cells are irregular, so they die at the fill-ratio 0.6 and aspect 3.2 gates and no uniform family forms. 'Sheet is empty / nearly empty' is the single most safety-relevant verdict for an adherence app (patient is out of medicine), and it is the one the pipeline cannot currently produce.",
+        "fix": "Rescue pass when candidates is empty after the 1.6 retry: rerun the DARK contour pass with relaxed gates (fill >= 0.35, aspect <= 4.0, area in frameArea*0.001..0.15), then demand GRID structure instead of shape uniformity — reuse the gridRecover clustering: require rows >= 2, cols >= 2, kept >= 0.6*rows*cols, and each blob within 0.35*medianPitch of its nearest intersection. If it passes, return { total: rows*cols, full: 0..1, empty: rest, verdict: 'empty or nearly empty pack', estimated: true }. Box safety (currently 0/2 FP — must stay 0): additionally require median blob dimension in [0.3, 0.9]*medianPitch, which text blocks and barcode stripes on boxes fail.",
+        "specialist": "vision-scientist",
+        "verdict": {
+          "real": true,
+          "reason": "Confirmed in code: detectCellsByContour gates at fill<0.6 (line 238) and aspect>3.2 (line 237), gateUniform (311-323) needs >=4 uniform cells, and countPills' only fallback is the kernelDiv-1.6 retry before `return null` at line 385 — gridRecover (389) runs only after a family already exists, so no path can ever emit an empty-pack verdict. The project's own eval notes (corpus\\eval-baseline-notes.txt line 7 and DIAGNOSIS item 3) independently document photos 06/07 detecting nothing and prescribe exactly this fix. It is on the roadmap but unimplemented, so not \"already handled.\"",
+          "severityAdjust": "major"
+        }
+      },
+      {
+        "title": "gridRecover invents 'empty' cells without consulting a single pixel",
+        "where": "C:\\Users\\LEGION\\Desktop\\MedLens Vision\\vision-worker.js:328-352",
+        "severity": "major",
+        "problem": "The gray Mat is passed in but used only for bounds checks. Every row×col intersection with no detected cell is recovered and FORCED empty (line 424). Two failure modes: (1) staggered/honeycomb layouts (3-4-3 round-tablet sheets are common) — offset rows make the column clustering interleave, producing phantom intersections that inflate the empty count, which is the count patients act on; (2) the axis-aligned row/col clustering silently disables itself on tilted sheets (a 30-degree tilt shifts cy across 5 columns by ~4.6r >> tol, exploding the row count past 30 and returning []), so the feature contributes nothing on exactly the handheld photos it was built for — 3 of 6 corpus blisters are tilted.",
+        "fix": "(1) Demand image evidence per recovered position before accepting: sample mean gray in a disc of 0.5*tol at (cx,cy) and its 1.35*tol ring; accept as empty only if discMean <= ringMean + 10 (hole or sheet-flat); if discMean > ringMean + 18 the position likely holds a missed pill — add it as unknown, never empty; otherwise drop it. (2) For tilt: deskew is supposed to solve this, but until deskew demonstrably fires (finding 3), rotate the cell centroids by the dominant family angle (median of minAreaRect angles of oblong cells, or PCA of centers) before clustering, then rotate recovered positions back.",
+        "specialist": "vision-scientist",
+        "verdict": {
+          "real": true,
+          "reason": "Confirmed in code: gridRecover (vision-worker.js:328-352) uses gray only for bounds checks and samples zero pixels; line 424 forces every recovered position to empty=true, which feeds the returned empty count and the red-X overlay. The reachable trigger is simpler than the finding's honeycomb/tilt scenarios: any single missed detection in an ordinary rectangular grid (misses are documented — eval MAE 3.0, exact count 1/3) becomes a false 'empty pocket', i.e. a present pill reported as taken. The honeycomb sub-claim is overstated (the tol*1.2 proximity skip, recovered<=detected bail, and >30 cap suppress most phantom cases) and the tilt sub-claim is a safe no-op (returns [] rather than wrong output), but the core pixel-evidence-free empty verdict is real and user-visible in a medication-adherence app.",
+          "severityAdjust": "major"
+        }
+      },
+      {
+        "title": "An openFDA name match suppresses the low-confidence warning and swaps in a green badge",
+        "where": "C:\\Users\\LEGION\\Desktop\\MedLens Vision\\index.html:1700-1712",
+        "severity": "critical",
+        "problem": "renderResult builds the badge as `matched ? 'NAME FOUND · OPENFDA' : 'AI READ · <conf> CONFIDENCE'` and the 'Not fully sure this is X' banner only renders when `!matched && conf === 'low'`. fdaMatchesMed needs only one ingredient/brand word of the AI's OWN read to overlap an openFDA record — it verifies that the name Gemini guessed exists, not that the guess is right. So the exact scans where Gemini itself said 'low confidence' (blurry box, misread name like ampicillin→amoxicillin) can lose their only uncertainty warning AND gain a green, verified-looking badge. This is the one-slide takedown: 'the app hides its own doubt whenever the wrong guess happens to be a real drug name.'",
+        "fix": "Show the lowConfBanner whenever conf === 'low', regardless of `matched` (change the condition to `conf === 'low'`). Keep the openFDA badge but never let it replace the confidence signal on low: render both badges, or change the low+matched badge to 'NAME IN OPENFDA · LOW-CONFIDENCE READ'.",
+        "specialist": "medical-guardian",
+        "verdict": {
+          "real": true,
+          "reason": "Verified in index.html: line 1702-1704 replaces the confidence badge with a green \"NAME FOUND · OPENFDA\" badge whenever fda.matched, and line 1711 gates the \"Not fully sure this is X\" banner on `!matched && conf === \"low\"` — med.confidence is used nowhere else in the card, so a match erases the uncertainty signal entirely. fdaMatchesMed (1689-1696) only checks token overlap between the FDA record and the AI's own read, so it confirms the guessed name exists, not that the read is correct; a misread onto another valid drug name (ampicillin→amoxicillin) passes. Worse, the Gemini prompt (line 1587) forces confidence \"low\" with an active-ingredient guess for unreadable/loose-pill photos — guesses that are common drug names and will nearly always match openFDA, making low+matched the common path, not an edge case. The always-on fine-print note at line 1746 and prompt-driven warning text do not restore the suppressed signal. Finding stands as written; the one-line fix is correct.",
+          "severityAdjust": "critical"
+        }
+      },
+      {
+        "title": "Children's medicines have no rule in the AI prompt — adult dosing can render on a pediatric product",
+        "where": "C:\\Users\\LEGION\\Desktop\\MedLens Vision\\index.html:1582-1590",
+        "severity": "major",
+        "problem": "The dosing rules say 'For over-the-counter medicines, give the typical adult dosing from the label' and 'never give doses for children', but there is no branch for products that ARE children's medicines (Children's Panadol syrup, pediatric ibuprofen suspension). Scanning a kids' syrup, the model is instructed toward adult label dosing with nothing telling it to route to the age/weight table instead — a pharmacist reviewer will scan exactly this and screenshot 'How to take it' showing adult guidance on a pediatric bottle. The general disclaimer mentions children, but the how_to_take list is the part people actually read.",
+        "fix": "Add a dosing rule to the prompt: 'If this is a children's medicine (syrup, drops, suspension, or a label aimed at children), set how_to_take to exactly one item: \"Children's doses depend on age and weight — use the dosing table on the package or ask a pharmacist. Do not use this scan to decide a child's dose.\"' Optionally add a `pediatric: true` field and show an amber badge like the rx one.",
+        "specialist": "medical-guardian",
+        "verdict": {
+          "real": true,
+          "reason": "Verified at index.html:1582-1590. The dosing rules contain exactly what the finding claims: OTC → \"give the typical adult dosing from the label\", rx-only → exact safe string, plus \"never give doses for children\" — but no branch for products that ARE children's medicines. For a kids' OTC syrup the rules self-contradict: rule 1 demands adult/label dosing, rule 3 forbids pediatric doses, so the model either emits adult dosing on a pediatric bottle or an age/weight table it was told never to give. Grep confirms no pediatric handling anywhere else — only the generic line-648 disclaimer (which the finding already acknowledges) and demo-mode hardcoded data outside the live scan path. The rx_only branch shows the author's established pattern of routing risky categories to exact safe strings, making this a genuine omission of the same class, and the proposed one-line fix fits the existing prompt structure. Only slight overstatement: the bad outcome is plausible rather than guaranteed (Gemini may self-correct), but at temperature 0.2 with rule 1 as the first concrete instruction, the hazard is real for a medical app.",
+          "severityAdjust": "major"
+        }
+      },
+      {
+        "title": "Hero claim 'cross-checked against official drug data' overstates what openFDA does",
+        "where": "C:\\Users\\LEGION\\Desktop\\MedLens Vision\\index.html:580 (also README.md:16 'openFDA grounds the name' is honest — the hero is not)",
+        "severity": "minor",
+        "problem": "The hero says the AI explanation is 'cross-checked against official drug data.' The app's own Sources note (line 1746) admits the opposite: 'An openFDA match confirms this medicine exists in the official US label database. The plain-language explanation itself is AI-written.' Only the NAME is matched; the purpose/warnings/dose text is never verified against the label. It is also US-only, so for most medicines a Tanzanian or European user scans, no check happens at all. First sentence judges read contradicts the app's own fine print — an easy hostile slide.",
+        "fix": "Change the hero to match reality: '…then AI explains it in plain language, with the name checked against the official US drug database (openFDA).' Same for the step-3 card if you tighten further (it already says 'name matched in openFDA', which is fine).",
+        "specialist": "medical-guardian",
+        "verdict": {
+          "real": true,
+          "reason": "Confirmed: hero (index.html:580) says the AI explanation is \"cross-checked against official drug data,\" but the code (lines 1360-1367) fetches openFDA AFTER Gemini writes the explanation, never feeds it to the AI, and only validates a name overlap (fdaMatchesMed, line 1689); the Sources note (line 1746) scopes the check to name-existence. US-only gap is also real. However the finding overstates: lines 1844-1851 quote the official label's Purpose/Directions/Warnings beside the AI card with a DailyMed link (\"this is the source\"), so the app does surface official drug data for comparison — \"only the NAME is matched\" ignores that section, and the fine print clarifies rather than \"admits the opposite.\" Real wording overclaim in a medical hero, trivially fixable; not a major integrity hole.",
+          "severityAdjust": "minor"
+        }
+      },
+      {
+        "title": "Scorecard today: Substance 8, Innovation 7, Impact 7, Execution 6 (28/40)",
+        "where": "https://medlens-vision.rohnringo3.workers.dev + C:\\Users\\LEGION\\Desktop\\MedLens Vision",
+        "severity": "critical",
+        "problem": "SUBSTANCE 8/10: vision-worker.js is genuinely substantive OpenCV — gradient-percentile auto-Canny, quad+warpPerspective rectify-then-count, top-hat/black-hat+Otsu, minAreaRect aspect gating, Hough cross-check vote, conservative grid recovery, color-vs-median-sheet classification, Laplacian split, specular abstention — plus a self-compiled OpenCV 5 WASM engine (verified live: sheetColorRef/Sobel autoCanny are deployed). Held back only by real-photo accuracy. INNOVATION 7/10: rectify-then-count, glare abstention, 'AI reads, deterministic code decides' are thoughtful engineering, but pill counting is a known problem — the novelty is discipline, not algorithm. IMPACT 7/10: medication safety on $30 Androids offline plus the Panadol+Tylenol synonym trap is a real, well-chosen problem; unproven with users and counting is not yet accurate enough to trust the refill forecast. EXECUTION 6/10: live PWA, 10/10 selftest, eval harness, key-proxy worker are strong; but v2 real-photo numbers are weak (detect 4/6, exact 1/3, MAE 3.0), the corpus is n=8 with only 3 scoreable counts, no public repo, no video, AWS absent.",
+        "fix": "Ceiling before Oct 26: Substance is already there — protect it. Execution moves most (6→8) via measured v3 eval numbers + 30-photo corpus + public repo + video. Impact moves (7→8) with one real user story (a pharmacist or clinic tries it) and accuracy good enough to trust. Innovation moves only via the narrative (finding 7 and 8). Priority order: measure v3 → grow corpus → repo → video → AWS.",
+        "specialist": "competition-judge",
+        "verdict": {
+          "real": true,
+          "reason": "Every factual premise checks out against the code: all nine claimed vision techniques exist at the cited functions in vision-worker.js and the v3 code (sheetColorRef, autoCannyThresholds) is in deploy/dist; eval numbers match corpus/eval-baseline-notes.txt line 9 verbatim (detect 4/6, exact 1/3, MAE 3.00, v2); corpus is n=8; .git/config has no remote (no public repo); selftest is exactly 10 assertions; no video or AWS anywhere. Only nit: manifest has 5 items with cell truth, but the eval's own denominator is 3 (06/07 abstained), so the finding mirrors the project's own scoring. The scorecard is grounded, current, and not overstated.",
+          "severityAdjust": "critical"
+        }
+      },
+      {
+        "title": "No public repo — judges cannot see the code, the build script, or the story",
+        "where": "C:\\Users\\LEGION\\Desktop\\MedLens Vision\\.git (git remote -v returns nothing)",
+        "severity": "critical",
+        "problem": "The competition's strongest evidence — vision-worker.js, build-opencv5.ps1, the honest commit history (v2 baseline → diagnosis → v3 redesign) — is invisible. OpenCV Foundation judges will read source; a live URL alone reads as a black box, and 'self-built OpenCV 5' is an unverifiable claim without the build script public. Submissions open Aug 26 and almost certainly require a repo link.",
+        "fix": "Push to github.com/rohnringo3-tech (same account as scamshield) before Aug 26. Include README.md, build-opencv5.ps1, corpus/ with manifest + eval notes. Per standing instruction: strip any Claude Co-Authored-By lines before pushing (none seen in git log, but verify). Add a LICENSE first (see finding 12).",
+        "specialist": "competition-judge",
+        "verdict": {
+          "real": true,
+          "reason": "Confirmed against the working tree: git remote -v is empty and remote.origin.url is unset, so the repo is local-only. The judge-facing evidence the finding cites (README.md, build-opencv5.ps1, corpus/manifest.json, eval-baseline notes) is tracked in git but exists nowhere public, and the honest v1→v2→OpenCV5-build→eval→v3 commit history is exactly as described. No Co-Authored-By trailers present. With submissions opening Aug 26 and judges needing to verify the self-built OpenCV 5 claim, this is a genuine submission-blocking gap, not overstated.",
+          "severityAdjust": "critical"
+        }
+      },
+      {
+        "title": "Detector v3 shipped but never measured — the headline numbers on file are v2's",
+        "where": "C:\\Users\\LEGION\\Desktop\\MedLens Vision\\corpus\\eval-baseline-notes.txt (labeled 'detector v2'); commit 5238bae says only 'corpus eval improving'",
+        "severity": "major",
+        "problem": "The v3 rewrite (color-evidence classification, gradient auto-Canny, tight-crop retry) was built specifically to fix the four diagnosed v2 failures — texture polarity inversion on photo-03, deskew firing 0/8, foil-back misses, all-empty rejection — but no post-v3 eval run is recorded anywhere. Right now the entry's only quantified accuracy is the bad baseline. Every downstream deliverable (README table, video, submission form) is blocked on this number.",
+        "fix": "Run node server.js, open localhost:7990/?eval=1, and record the v3 table into a new corpus/eval-v3-notes.txt with the same format as the baseline. Verify specifically: photo-03 classification no longer inverted, deskew fires >0/8, photo-02 foil-back count. If v3 regressed anything, the 10-assertion selftest plus this eval is the regression gate for every later change.",
+        "specialist": "competition-judge",
+        "verdict": {
+          "real": true,
+          "reason": "Confirmed: HEAD commit 5238bae is the v3 detector rewrite (only vision-worker.js changed, no eval recorded, message says just \"corpus eval improving\"), while the only quantified eval anywhere in the repo is corpus\\eval-baseline-notes.txt — explicitly labeled \"detector v2\", timestamped 23:15 vs the v3 commit at 23:34. No eval-v3 file exists, git status is clean, and a repo-wide grep confirms the v2 numbers (detect 4/6, exact 1/3, MAE 3.00) are the sole accuracy figures on file — and they're already being quoted as the entry's current results. Downgraded from critical to major: nothing shipped is broken, the ?eval=1 harness exists so the re-run is cheap, and the downstream deliverables it blocks (README table, video, submission form) aren't due until the Aug 26–Oct 26 window.",
+          "severityAdjust": "major"
+        }
+      },
+      {
+        "title": "README hides the project's best rigor: it claims the corpus doesn't exist yet",
+        "where": "C:\\Users\\LEGION\\Desktop\\MedLens Vision\\README.md line 43 ('A real-photo test corpus... is the next milestone — photography in progress')",
+        "severity": "major",
+        "problem": "The corpus, hand-labeled manifest (with honest null-truth fields), ?eval=1 harness, baseline numbers, and written failure diagnosis all exist — and the README says none of it does. A judge reading the README sees only synthetic selftests, which are table stakes; the real-photo methodology is exactly what separates this from toy entries.",
+        "fix": "Rewrite the Verification section: (1) 10 synthetic assertions at /?selftest=1, (2) real-photo corpus with hand-labeled ground truth where null = 'even a human can't tell', (3) the measured baseline table, (4) the diagnosis, (5) the v3 numbers. Link ?eval=1. Keep the 'measured, not claimed' phrasing from the index.html comment — it's the right voice.",
+        "specialist": "competition-judge",
+        "verdict": {
+          "real": true,
+          "reason": "Verified directly: README.md line 43 claims the real-photo corpus is a future milestone (\"photography in progress\"), but corpus/ contains 8 photos, manifest.json with hand-labeled ground truth (including the exact null='even a human can't tell' convention), eval-baseline-notes.txt with measured baseline numbers (detect 4/6, exact count 1/3, MAE 3.00) and a written 4-point failure diagnosis, and index.html has a working ?eval=1 harness whose comment even promises 'the accuracy table in the README — measured, not claimed' — a table the README lacks. Minor caveats: corpus photos are gitignored so live ?eval=1 may lack them, and the recorded baseline is detector v2 (v3 numbers need a re-run), but neither undermines the finding.",
+          "severityAdjust": "major"
+        }
+      },
+      {
+        "title": "Live ?eval=1 is an empty page — corpus/ was never deployed",
+        "where": "https://medlens-vision.rohnringo3.workers.dev/corpus/manifest.json returns 404; deploy\\dist\\ has no corpus directory",
+        "severity": "major",
+        "problem": "The eval harness ships in production index.html, but corpus/manifest.json 404s on the live site, so any judge who discovers /?eval=1 sees 'No corpus yet. Add photos...' — the single worst possible impression: a rigor feature that looks abandoned. Meanwhile selftest and livedemo deep links work.",
+        "fix": "Copy corpus\\*.jpg + manifest.json into deploy\\dist\\corpus\\ and redeploy (deploy.bat). ~8 phone JPEGs is a few MB — fine for Workers Static Assets. Then the README/submission can link a live, self-verifying accuracy page: judges press one URL and watch the production pipeline score itself against ground truth. That's a differentiator almost no entrant will have.",
+        "specialist": "competition-judge",
+        "verdict": {
+          "real": true,
+          "reason": "Verified end-to-end: live /corpus/manifest.json returns 404 via curl while root returns 200; deploy\\dist\\ has no corpus directory; the deployed index.html ships the ?eval=1 harness whose fetch at line 2271 falls into the catch that prints 'No corpus yet. Add photos to corpus/...'. Local corpus\\ (manifest.json + 8 JPEGs, 640KB) exists and the proposed copy-and-redeploy fix is accurate. Minor caveat: README doesn't yet link ?eval=1, so discovery requires source reading — but the harness comment claims it backs the README accuracy table, making the live gap real.",
+          "severityAdjust": "major"
+        }
+      },
+      {
+        "title": "n=3 is the real corpus, not n=8 — too small to claim anything",
+        "where": "C:\\Users\\LEGION\\Desktop\\MedLens Vision\\corpus\\manifest.json (only photos 02, 03, 05 have full count truth; 2 boxes, 3 null-truth)",
+        "severity": "major",
+        "problem": "'Exact count 1/3' and 'intact-exact 0/3' are three-sample statistics; one photo swings every metric by 33 points. Judges doing the division will discount the whole eval, and v3-vs-v2 improvement claims are statistically meaningless at this size.",
+        "fix": "Grow to 30+ photos before the video: multiple brands per shape class (round/capsule/oblong), foil-back and bubble-front for each, 3 lighting conditions (daylight, indoor, harsh glare), tilted and straight, plus more negative cases (boxes, bottles, loose pills). Pharmacy shelves and family medicine cabinets are enough. Keep the null-truth honesty convention — it's a strength. This is also the AWS story: the S3+Lambda eval backbone is only worth building if there's a corpus worth automating.",
+        "specialist": "competition-judge",
+        "verdict": {
+          "real": true,
+          "reason": "Manifest confirms only photos 02/03/05 carry full ground truth, and the eval harness (index.html:2315 filters countErr!=null; photos 06/07 were undetected per eval-baseline-notes.txt) means the headline 'exact count 1/3, MAE 3.00, intact-exact 0/3' are genuine n=3 statistics — arithmetic verified: MAE=(6+3+0)/3. Minor nit: photos 06/07 do have cells:8 count truth, so count-truth coverage is 5 photos not 3, but they fall out of the computed stats anyway. README hasn't published the numbers yet and more photos are on the roadmap, but the n=3-derived metrics are already in the repo and the entry narrative, so the claim is neither wrong nor already handled.",
+          "severityAdjust": "major"
+        }
+      },
+      {
+        "title": "The self-built OpenCV 5 story is told well in README but invisible everywhere judges will actually look",
+        "where": "Live page copy says only 'OpenCV' (no 5, no self-built); story lives in README.md lines 31-39 and an index.html code comment at line 1413",
+        "severity": "major",
+        "problem": "This is the entry's best credibility card for OpenCV Foundation judges — a 14-year-old who hit the real 5.x pthreads/cross-origin-isolation hang, diagnosed it, and compiled a single-threaded 5.x WASM from source with a reproducible script that documents the harfbuzz -Werror and --post-js quoting fixes. Currently a judge using the app or watching a demo would never learn OpenCV 5 is even involved. The README telling is good but thin on proof: the pthreads-hang claim is asserted, not demonstrated.",
+        "fix": "Three placements: (1) app About/footer line: 'Engine: OpenCV 5, compiled from the 5.x branch for this app — 14 MB single-threaded WASM' linking the build script; (2) README: add a 2-minute repro of the hang (load docs.opencv.org/5.x/opencv.js in a worker on a non-isolated origin, show it wedge) so the claim is verifiable, plus build.log excerpt; (3) 20 seconds of the demo video. Also state the tradeoff you accepted (single-thread = no parallel speedup) — judges reward understood tradeoffs.",
+        "specialist": "competition-judge",
+        "verdict": {
+          "real": true,
+          "reason": "Verified against both local source and the live deployed page. All user-facing copy in the app says only \"OpenCV\" with no version and no self-built mention: line 600 (\"OpenCV on your phone — finds the label...\"), line 1233 livedemo text (\"the real OpenCV pipeline running on your phone\"), line 1537 and line 1801 result strings (\"Measured by OpenCV running on this phone\"). The full self-built story exists only in a JS code comment at index.html line 1413 (exactly as cited) and README.md lines 31-39 (\"## The OpenCV 5 story\" heading at line 31) — both confirmed. The README indeed asserts the pthreads hang without any repro; build-opencv5.ps1 reproduces the build, not the hang. Live curl confirms the deployed page matches. Two small overstatements that do not kill the finding: (1) the selftest page (line 2169) does show a user-visible \"downloads the 14 MB OpenCV 5 engine\" — so \"no 5\" is not absolute — but it appears only on /?selftest=1 and says nothing about self-compilation; (2) \"invisible everywhere judges will actually look\" overshoots since the README is a primary judging artifact and tells the story well (the finding body concedes this). The core gap is real: a judge using the live app or the livedemo, or watching the planned demo video, never encounters the entry's strongest OpenCV-credibility differentiator, and the hang claim is unverifiable as written. The proposed fixes (footer/About line, hang repro in README, demo-video beat, stated single-thread tradeoff) are all currently absent from the codebase.",
+          "severityAdjust": "major"
+        }
+      },
+      {
+        "title": "AWS pillar is vapor while the README front-loads 'powered by AWS'",
+        "where": "README.md line 9 ('powered by AWS') and line 50 ('AWS evaluation backbone... pending account setup'); blocker: parent's card",
+        "severity": "major",
+        "problem": "The competition brands itself 'powered by AWS' and the README promises an S3+Lambda eval backbone that doesn't exist. If judging weights AWS usage at all, the entry currently scores zero there; worse, a promised-but-absent AWS section reads as padding. The dependency (parent's card) has been pending since mid-August.",
+        "fix": "Resolve by mid-September either way. If the card lands: S3 corpus bucket + a Lambda that runs the eval headless (or just hosts corpus + results) is one weekend and makes the corpus-growth story scale. If it doesn't land by ~Sep 20: delete every AWS promise from README and app, and say nothing — an entry with no AWS mention beats one with a broken promise. Do not let this block the eval/corpus/video work, which matters more.",
+        "specialist": "competition-judge",
+        "verdict": {
+          "real": true,
+          "reason": "Both cited README lines exist verbatim (line 9 \"powered by AWS\", line 50 \"AWS evaluation backbone... pending account setup\"), and a project-wide grep confirms AWS appears nowhere except README.md — no S3/Lambda code exists at all. The blocker (parent's card, pending since mid-August) is corroborated. The finding's hedge \"if judging weights AWS\" is confirmed as real: the official competition page requires proposals to include \"the planned AWS architecture and services\", so zero AWS usage is a genuine scoring liability, not hypothetical. Minor overstatements only: the README honestly labels the backbone \"next milestone, pending\" rather than claiming it exists, and the app itself has no AWS mentions to delete (only the README does). Core claim and fix stand.",
+          "severityAdjust": "major"
+        }
+      },
+      {
+        "title": "Demo video sequencing: do not record until v3 numbers are in",
+        "where": "Roadmap (video not made); deadline Oct 26, submissions open Aug 26",
+        "severity": "major",
+        "problem": "The video is typically the highest-leverage judged artifact and it's unmade. Recording now would either show v2-era failure modes or force a re-record after every detector change. Under v2 the 'clean flagship' photo-03 case was the worst failure — a live-camera demo could invert on stage.",
+        "fix": "Order: v3 eval recorded → corpus grown → then script the video. Shot list (2-3 min): real phone camera on a real blister (the photo-03-class case) showing count + intact/empty overlay in ~200ms; the glare abstention ('it says could-not-tell instead of guessing — this is a medicine app'); /?selftest=1 scrolling 10 PASS lines; /?eval=1 live against the corpus; 20s on the self-built OpenCV 5 engine; the Panadol+Tylenol interaction catch. End on the one-line thesis: 'AI reads and explains, deterministic code decides.'",
+        "specialist": "competition-judge",
+        "verdict": {
+          "real": true,
+          "reason": "Every premise verified against the repo: no demo video exists anywhere in the project (only vendored OpenCV sample videos) and README has no video link; the photo-03 inversion is documented verbatim in corpus\\eval-baseline-notes.txt (\"CLASSIFICATION INVERTED on the easiest photo\") with manifest.json calling photo-03 \"the clean flagship case\", so the live-demo inversion risk is grounded in the project's own eval record. The proposed shot list cites only real features (selftest harness at index.html:2096, /?eval=1 harness at index.html:2258, glare abstention and Panadol+Tylenol in README). Sequencing advice remains valid post-v3: corpus notes still only record the v2 baseline, the cited v3 top-line equals the v2 summary (exact 1/3, MAE 3.0), and pending roadmap items (foil-back detection, empty-pack verdict, corpus growth) will change detector output, forcing re-records if the video were shot now. Slightly softened by being preventive process guidance with ~2 months of slack, but as a competition-readiness finding it is accurate, specific, and actionable.",
+          "severityAdjust": "major"
+        }
+      },
+      {
+        "title": "analyze() takes ~11 s at production resolution on a desktop i9 — will blow the 30 s timeout and the battery on a $30 Android",
+        "where": "vision-worker.js:198,363-384,535-537; index.html:1504-1507,600",
+        "severity": "critical",
+        "problem": "Measured live on the deployed site: visionAnalyze on a 1536x1152 blister image ran 10,855 ms IN THE WORKER on an i9-13900HX (an 800x600 image took 2,440 ms). The cost drivers: countPills runs three full detection passes (bright top-hat, dark black-hat, HoughCircles) where the morphology structuring element is minDim/3 = 384x384 px on a 1.7M-pixel image (vision-worker.js:198), the no-candidate retry doubles that with a ~720px kernel (379-383), and when a label quad is found but countPills(label) fails, the whole pipeline runs AGAIN on the raw frame (analyze, 535-537). A low-end Cortex-A53 phone is 5-15x slower single-core than this i9, so real scans will routinely exceed the 30 s guard at index.html:1504 — vision silently vanishes from exactly the phones the app targets, after 30 s of full-CPU spin that also risks OOM (each 1536px RGBA Mat is ~7 MB; the pipeline holds src+clone+gray+diff+bin simultaneously, pushing the wasm heap well past 100 MB on a 2 GB device). The landing page claims '~200 ms' (index.html:600) — off by ~50x at production size; judges who test on a phone will notice.",
+        "fix": "1) Analyze at <=1024px (or even 768px): change the cap in imageToImageData (index.html:1482) for the WORKER path only, keeping 1536 for the Gemini upload — counting 4-30 cells does not need 1536px, and pixels scale cost quadratically (1024px = 2.2x fewer pixels). 2) Compute the top-hat at quarter scale: pyrDown twice, morphologyEx with kernel/4, pyrUp the mask — identical result for blob isolation at ~1/16 the cost. 3) Skip detectCellsByHough when either contour pass already yielded a gateUniform-passing family. 4) Update or measure-and-honestly-report the '~200 ms' claim (out.ms is already returned — show it). Re-run ?selftest=1 and the corpus eval to confirm identical counts.",
+        "specialist": "performance-auditor",
+        "verdict": {
+          "real": true,
+          "reason": "CONFIRMED by reading the code and by live re-measurement on the deployed site. Code: vision-worker.js:198 builds a MORPH_RECT structuring element of max(31, minDim/3) = 384px for a 1536x1152 frame; countPills (363-367) runs bright top-hat + dark black-hat + HoughCircles every time; the no-candidate retry (380-383) repeats both contour passes with kernelDiv=1.6 (~721px kernel); analyze (535-537) re-runs the whole countPills on the raw frame when a label quad warped but the crop count failed. index.html:1504-1507 is a hard 30s reject, and both callers swallow it (index.html:1354 catch -> console.warn(\"vision layer skipped\")), so vision does silently vanish. index.html:600 carries the verbatim \"~200 ms\" claim, and index.html:1482 caps ALL camera photos to 1536px regardless of device, so low-end phones process the same 1.7MP. Live reproduction on this i9-13900HX via the deployed site: a 1536x1152 synthetic blister on the CLEAN path (no retry, count succeeded) took 4,282 ms in-worker; a messy 1536x1152 frame that hit the retry path took 9,811 ms in-worker — matching the finding's 10,855 ms (its case likely also hit the label-fallback re-run). At 3-10x slower single-core WASM on a budget Cortex-A53 phone, retry-path scans (i.e. most real handheld photos that aren't perfectly clean) credibly exceed 30s, and even clean-path scans (~4.3s desktop) land in the 15-40s range — on exactly the hardware this competition entry claims to target, with judges likely testing on phones. The selftest images are only 760x420/800x600 (index.html:2101, 2118), so the app's own tests never exercise production resolution and cannot catch this. Note the finding is honest that the app degrades gracefully (Gemini scan still completes) — the harm is the flagship OpenCV feature disappearing plus 30s of full-CPU battery spin plus a landing-page claim off by ~20-50x even on desktop. Only trivial overstatements: the result card already displays the real vision.ms (index.html:1801), so fix item 4 is half-done already, and the >100MB wasm-heap figure is plausible but unverified — neither affects the core finding.",
+          "severityAdjust": "critical"
+        }
+      },
+      {
+        "title": "Self-built OpenCV 5 wasm has no SIMD — leaving a free 2-4x speedup on the table",
+        "where": "build-opencv5.ps1:94",
+        "severity": "major",
+        "problem": "build_js.py is invoked without --simd, so the wasm uses scalar code for Sobel, Canny, GaussianBlur, and the giant-kernel morphology that dominates the 11 s analyze time. WASM SIMD is supported by Chrome 91+, Firefox 89+, and Safari 16.4+ — i.e. every browser a competition judge will use, and every 2021+ Android WebView.",
+        "fix": "Build a second artifact with --simd (add \"--simd\" to the RunTool arg list at build-opencv5.ps1:94, output to opencv-simd.js). In vision-worker.js, feature-detect before importScripts: try WebAssembly.validate(new Uint8Array([0,97,115,109,1,0,0,0,1,5,1,96,0,1,123,3,2,1,0,10,10,1,8,0,65,0,253,15,253,98,11])) — true means load opencv-simd.js, else fall back to the current scalar opencv.js. Add the simd file to the sw.js opencv cache route (match both filenames). Combined with the resolution fix this brings analyze() into the low hundreds of ms.",
+        "specialist": "performance-auditor",
+        "verdict": {
+          "real": true,
+          "reason": "Verified end-to-end: build-opencv5.ps1:94 passes no --simd; the cloned build_js.py defaults simd off (adds -DCV_ENABLE_INTRINSICS=OFF, no -msimd128); the actual build's CMakeCache.txt confirms scalar flags (CMAKE_CXX_FLAGS line 237 lacks -msimd128, CV_ENABLE_INTRINSICS=OFF line 518); and the shipped opencv.js in root + deploy/dist is md5-identical to that build output. vision-worker.js does hammer Sobel/GaussianBlur/Canny and a large-kernel morphologyEx (lines 199-201), and since the build is deliberately single-threaded, SIMD is the only remaining hardware speedup. Fix details check out too: sw.js matches pathname endsWith(\"/opencv.js\") so a simd variant needs the route extended, and the feature-detect blob is the canonical wasm-feature-detect SIMD probe. The 2-4x figure is plausible per published OpenCV.js SIMD benchmarks though not independently measured here.",
+          "severityAdjust": "major"
+        }
+      },
+      {
+        "title": "Every SW version bump deletes the cached 14 MB opencv.js — users on metered data re-pay the whole engine per deploy",
+        "where": "sw.js:5,21-27",
+        "severity": "major",
+        "problem": "The activate handler deletes every cache whose name isn't the current CACHE (\"medlens-vision-v5\"), and opencv.js lives inside that same versioned cache. The cache name is already at v5 in two days of deploys — each bump silently evicts the 14 MB engine and forces a full re-download on next scan, on the Tanzanian/2G-class connections the app is built for. The engine is immutable per build; it should never ride the shell version.",
+        "fix": "Split caches: const CACHE = \"medlens-vision-v5\" for the shell, const CV_CACHE = \"medlens-cv-1\" for opencv.js (bump CV_CACHE only when the wasm build actually changes). Use CV_CACHE in the opencv route (sw.js:60-71), and change the activate cleanup filter to keys.filter(k => k !== CACHE && k !== CV_CACHE). Shell updates then cost ~200 KB instead of 14.2 MB.",
+        "specialist": "performance-auditor",
+        "verdict": {
+          "real": true,
+          "reason": "Confirmed in sw.js: line 5 defines the single versioned cache \"medlens-vision-v5\"; the opencv.js route (lines 60-71) writes the engine into that same CACHE (line 65); the activate handler (lines 21-27) deletes every cache != CACHE, so each version bump evicts the engine and the cache-first lookup re-downloads it in full. opencv.js is 14,073,186 bytes on disk — the 14 MB claim is exact. No separate engine cache, copy-forward, or other mitigation exists. The file's own comments (lines 6-8) show deliberate engineering to avoid double engine downloads on 3G, which the versioning scheme defeats on every deploy (already 5 bumps). Fix (split shell/engine caches, exclude both from cleanup) is correct.",
+          "severityAdjust": "major"
+        }
+      },
+      {
+        "title": "First-visit race: idle warm can fetch opencv.js before the SW controls the page, so 14 MB downloads twice",
+        "where": "index.html:1462-1467,2065-2067; sw.js:6-9,13-19",
+        "severity": "minor",
+        "problem": "opencv.js is deliberately NOT in the SW install list — it is cached by the fetch route when the warm-up requests it. But the warm-up fires at requestIdleCallback (timeout 10 s, often ~1-2 s) or setTimeout(4000), while on a first visit the page is uncontrolled until the SW finishes installing 9 shell files and runs activate+clients.claim(). On a slow connection (where the install itself takes 10-30 s) the warm's importScripts('opencv.js') wins the race, bypasses the SW, and the 14 MB response is never cached — the NEXT visit downloads all 14 MB again. Worst on exactly the slow, metered connections where it matters; a 28 MB first-day cost.",
+        "fix": "Gate the warm on control: replace whenIdle(() => getVisionWorker()) with a helper that waits for (navigator.serviceWorker.controller || navigator.serviceWorker.ready-then-controllerchange) with a ~15 s fallback, then warms. Simplest robust version: const warm = () => { try { getVisionWorker(); } catch {} }; if (navigator.serviceWorker?.controller) whenIdle(warm); else navigator.serviceWorker?.ready.then(() => whenIdle(warm)) ?? whenIdle(warm). (ready resolves after activate; claim() makes the page controlled at that point, so the worker fetch goes through the caching route.)",
+        "specialist": "performance-auditor",
+        "verdict": {
+          "real": true,
+          "reason": "The race itself is verified in the code: index.html schedules the warm-up (whenIdle -> getVisionWorker, lines 1462-1467) in the same top-level script before the SW registration at 2065-2067; sw.js deliberately omits opencv.js from SHELL (lines 6-10) and relies on the fetch route (lines 60-71) to cache it. On a first visit the page is uncontrolled until install+activate+claim completes, a dedicated worker created by an uncontrolled page stays uncontrolled (controller is fixed at worker creation, claim() does not retrofit it), and rIC(timeout 10s)/setTimeout(4s) can easily fire before a slow install finishes — so the warm's importScripts('opencv.js') can bypass the SW and the response never lands in Cache Storage. HOWEVER, the headline impact is refuted by the live site's actual headers: curl of https://medlens-vision.rohnringo3.workers.dev/opencv.js returns Cache-Control: public, max-age=0, must-revalidate with a strong ETag (Workers Static Assets default). The bypassed download IS stored in the browser HTTP disk cache; on the next visit the SW route's cache-miss fetch(e.request) revalidates conditionally, gets a 304, serves the 14MB body from disk, and writes it into Cache Storage — a few hundred bytes on the wire, not a second 14MB download. The claimed '28 MB first-day cost' therefore does not occur in the common case. Residual real impact: (a) offline vision is unavailable after a first visit where the warm won the race, until one more online visit heals the SW cache via the 304 path (and the app already degrades gracefully without vision); (b) a true double download only in the corner case where the HTTP cache evicted the 14MB entry before the return visit; (c) users with Save-Data on skip the warm entirely (line 1462). The suggested controller-gated warm is a correct, cheap hardening, but this is an offline-readiness polish issue, not a major bandwidth bug.",
+          "severityAdjust": "minor"
+        }
+      },
+      {
+        "title": "Desktop drag-and-drop demands a personal Gemini key even on the deployed site where the proxy makes scans zero-setup",
+        "where": "index.html:1273",
+        "severity": "major",
+        "problem": "The drop handler checks if (!getKey()) and blocks with 'Add your free Gemini key in Settings first' — but every other entry point (buttons, scanzone click) checks canScanLive(), which is true on the workers.dev deployment because of the same-origin proxy. A judge who drags a medicine photo onto the scanzone — the most natural desktop gesture, which the zone's own hint invites ('drop a photo here') — is wrongly bounced to the settings modal instead of getting the zero-setup scan the proxy was built to provide.",
+        "fix": "In the drop handler, replace if (!getKey()) with if (!canScanLive()), matching ensureKeyThen (index.html:1114). Also mirror the offline check: if (!navigator.onLine) { toast(\"You're offline — reconnect to scan, or try a sample\"); return; }.",
+        "specialist": "performance-auditor",
+        "verdict": {
+          "real": true,
+          "reason": "Confirmed in C:\\Users\\LEGION\\Desktop\\MedLens Vision\\index.html: drop handler (line 1273) gates on getKey() only, while canScanLive() (line 742) also accepts PROXY_URL, which is \"/api/gemini\" on the deployed workers.dev site (line 717). All other scan entry points (lines 1202-1207, 1927) use ensureKeyThen -> canScanLive() with an additional offline guard. The desktop zone hint (line 588) explicitly invites \"drop a photo here\", so a keyless judge dragging an image on the live site is wrongly sent to Settings instead of the zero-setup proxy scan. The suggested fix matches the existing ensureKeyThen pattern.",
+          "severityAdjust": "major"
+        }
+      },
+      {
+        "title": "First scan on a slow network waits up to 90 s for the vision engine before the 300 KB Gemini call even starts",
+        "where": "index.html:1346-1360,1222",
+        "severity": "major",
+        "problem": "scanFromDataUrl awaits visionWaitReady(90000) and then visionAnalyze (30 s cap) strictly BEFORE analyzeWithGemini. Vision is optional garnish (hints + crop), yet on a 2G/3G first visit the user's real answer — the AI card, needing only a ~300 KB upload — is held hostage behind a 14 MB engine download for up to 90 s, then up to 30 s of wasm compute. Total worst case exceeds 2 minutes before the first Gemini byte moves. The two operations are independent until the prompt is assembled.",
+        "fix": "Race, don't serialize: cap the engine wait for the SCAN path at ~12-15 s when !visionIsReady (keep 90 s for the pure live-demo path where vision IS the product), i.e. const engineReady = await visionWaitReady(visionIsReady ? 0 : 15000). Better: start const medPromise = analyzeWithGemini(dataUrl, key, \"\", null) immediately, run vision concurrently with a 15 s budget, and only if vision finishes first re-issue with hints — or simplest: keep one Gemini call but assemble it after Promise.race([visionPromise, sleep(15000)]). The warm-up already makes the ready case common, so hints are rarely lost.",
+        "specialist": "performance-auditor",
+        "verdict": {
+          "real": true,
+          "reason": "Confirmed at index.html:1345-1360: scanFromDataUrl strictly serializes visionWaitReady(90000) + visionAnalyze (30 s guard, line 1504) before analyzeWithGemini, and visionWaitReady resolves false after burning the full 90 s on slow networks — pure dead wait since vision is then skipped anyway. Vision is optional by the code's own comment (1340-1343) and only feeds prompt hints/an optional crop, so the ops are independent until prompt assembly. Worse than stated: the idle warm-up (1462-1467) is skipped under navigator.connection.saveData, so data-saver users — the most bandwidth-constrained — start the 14 MB download only at scan time, guaranteeing the wait. Stage text, cancel button, and SW caching mitigate confusion but not latency.",
+          "severityAdjust": "major"
+        }
+      }
+    ],
+    "minorCount": 35
+  },
+  "workflowProgress": [
+    {
+      "type": "workflow_phase",
+      "index": 1,
+      "title": "Inspect"
+    },
+    {
+      "type": "workflow_phase",
+      "index": 2,
+      "title": "Verify"
+    },
+    {
+      "type": "workflow_phase",
+      "index": 3,
+      "title": "Prioritize"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 1,
+      "label": "inspect:pixel-perfectionist",
+      "phaseIndex": 1,
+      "phaseTitle": "Inspect",
+      "agentId": "abd8adc9eb336bea7",
+      "model": "claude-fable-5",
+      "state": "done",
+      "startedAt": 1787000941719,
+      "lastProgressAt": 1787000941719,
+      "cached": true,
+      "resultPreview": "{\"findings\":[{\"title\":\"Live vision demo result is branded \\\"AI READ · HIGH CONFIDENCE\\\" + \\\"Read by Gemini AI\\\" — but no AI ran\",\"where\":\"index.html:1699-1705 (badge), index.html:1745 (sources chips), verified live at /?livedemo=1\",\"severity\":\"major\",\"problem\":\"The judge-facing OpenCV proof screen renders the fallback badge 'AI READ · HIGH CONFIDENCE' and a 'Read by Gemini AI' source chip, because…",
+      "promptPreview": "You are a merciless UI designer reviewing every pixel. WebFetch the live site and READ the full CSS+HTML in index.html. Hunt: spacing inconsistencies, misaligned elements, contrast failures, awkward mobile breakpoints, chip/badge overload on the result screen, the vision x-ray image presentation, typography hierarchy, the new \"Watch it count pills\" button placement and label length, settings sheet…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 2,
+      "label": "inspect:code-surgeon",
+      "phaseIndex": 1,
+      "phaseTitle": "Inspect",
+      "agentId": "a765b06fc295218c2",
+      "model": "claude-fable-5",
+      "state": "done",
+      "startedAt": 1787000941719,
+      "lastProgressAt": 1787000941719,
+      "cached": true,
+      "resultPreview": "{\"findings\":[{\"title\":\"Drag-and-drop gate checks getKey() instead of canScanLive(), locking out proxy users\",\"where\":\"index.html:1273\",\"severity\":\"major\",\"problem\":\"Every other scan entry point (btnScan, btnGallery, scanzone click) goes through ensureKeyThen() which uses canScanLive() (personal key OR the deployed /api/gemini proxy). The desktop drag-and-drop handler alone tests `if (!getKey())` a…",
+      "promptPreview": "You are a staff engineer reviewing index.html and vision-worker.js line by line for BUGS: race conditions (scanGen/camGen generation tokens, worker lifecycle, visionWaitReady paths), memory leaks (every cv.Mat delete path, ImageData transfers), error handling gaps, the SW cache strategy vs 14MB opencv.js, localStorage schema drift, the eval/selftest/livedemo query-param modes interfering with the …"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 3,
+      "label": "inspect:vision-scientist",
+      "phaseIndex": 1,
+      "phaseTitle": "Inspect",
+      "agentId": "a83659859f32284f2",
+      "model": "claude-fable-5",
+      "state": "done",
+      "startedAt": 1787000941719,
+      "lastProgressAt": 1787000941719,
+      "cached": true,
+      "resultPreview": "{\"findings\":[{\"title\":\"Winner-take-all polarity vote structurally caps the count on mixed sheets (HIGHEST-YIELD CHANGE #1)\",\"where\":\"C:\\\\Users\\\\LEGION\\\\Desktop\\\\MedLens Vision\\\\vision-worker.js:368-387\",\"severity\":\"critical\",\"problem\":\"countPills gates bright, dark, and Hough families separately and keeps only the most populous ONE. But on a partially-used sheet the intact pills and the emptied ce…",
+      "promptPreview": "You are a CV researcher auditing vision-worker.js algorithm by algorithm against the REAL failures in corpus/eval-baseline-notes.txt. Judge: the color-evidence classifier thresholds (dSat 0.12, dV 18/-30, colorDist 18 — principled or magic?), median sheet reference validity, top-hat kernel scale logic + the 1.6 retry, gradient-percentile Canny, grid recovery safety, what to do about foil-BACK shee…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 4,
+      "label": "inspect:medical-guardian",
+      "phaseIndex": 1,
+      "phaseTitle": "Inspect",
+      "agentId": "a6a788c5e06f4e751",
+      "model": "claude-fable-5",
+      "state": "done",
+      "startedAt": 1787000941719,
+      "lastProgressAt": 1787000941719,
+      "cached": true,
+      "resultPreview": "{\"findings\":[{\"title\":\"An openFDA name match suppresses the low-confidence warning and swaps in a green badge\",\"where\":\"C:\\\\Users\\\\LEGION\\\\Desktop\\\\MedLens Vision\\\\index.html:1700-1712\",\"severity\":\"critical\",\"problem\":\"renderResult builds the badge as `matched ? 'NAME FOUND · OPENFDA' : 'AI READ · <conf> CONFIDENCE'` and the 'Not fully sure this is X' banner only renders when `!matched && conf ===…",
+      "promptPreview": "You are a pharmacist reviewing every WORD the app can show: all verdict copy, the 30 IX_PAIRS notes (factually right? severity right?), SYN_PAIRS correctness (any WRONG synonym pairs would be dangerous), disclaimer coverage, the refill forecast wording, the \"NAME FOUND - OPENFDA\" badge honesty, dose-reminder limits, what happens with children's medicines, the demo med card wording. Flag anything a…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 5,
+      "label": "inspect:competition-judge",
+      "phaseIndex": 1,
+      "phaseTitle": "Inspect",
+      "agentId": "adeffa64be30ef25d",
+      "model": "claude-fable-5",
+      "state": "done",
+      "startedAt": 1787000941719,
+      "lastProgressAt": 1787000941719,
+      "cached": true,
+      "resultPreview": "{\"findings\":[{\"title\":\"Scorecard today: Substance 8, Innovation 7, Impact 7, Execution 6 (28/40)\",\"where\":\"https://medlens-vision.rohnringo3.workers.dev + C:\\\\Users\\\\LEGION\\\\Desktop\\\\MedLens Vision\",\"severity\":\"critical\",\"problem\":\"SUBSTANCE 8/10: vision-worker.js is genuinely substantive OpenCV — gradient-percentile auto-Canny, quad+warpPerspective rectify-then-count, top-hat/black-hat+Otsu, minA…",
+      "promptPreview": "You are scoring this entry against the OpenCV AI Competition rubric TODAY. WebFetch the live site, run /?livedemo=1 and /?selftest=1 mentally via their source, read README.md. Score substance/innovation/impact/execution 0-10 each, then list what moves each score before Oct 26 given the real state (corpus of 8, AWS pending, video not made). Be specific about the submission narrative: is \"self-built…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 6,
+      "label": "inspect:performance-auditor",
+      "phaseIndex": 1,
+      "phaseTitle": "Inspect",
+      "agentId": "acb7507418f02e032",
+      "model": "claude-fable-5",
+      "state": "done",
+      "startedAt": 1787000941719,
+      "lastProgressAt": 1787000941719,
+      "cached": true,
+      "resultPreview": "{\"findings\":[{\"title\":\"analyze() takes ~11 s at production resolution on a desktop i9 — will blow the 30 s timeout and the battery on a $30 Android\",\"where\":\"vision-worker.js:198,363-384,535-537; index.html:1504-1507,600\",\"severity\":\"critical\",\"problem\":\"Measured live on the deployed site: visionAnalyze on a 1536x1152 blister image ran 10,855 ms IN THE WORKER on an i9-13900HX (an 800x600 image too…",
+      "promptPreview": "You audit performance and resilience: 14MB opencv.js load path (SW cache strategy, idle-warm timing, saveData behavior), worker analyze() timings on 1536px images, main-thread jank during scans, PWA install flow, offline behavior of every mode (scan/samples/livedemo/meds), what a $30 Android with 2GB RAM experiences, iOS Safari specifics (no SharedArrayBuffer needed - good - but check ImageData tr…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 7,
+      "label": "verify:Live vision demo result is b",
+      "phaseIndex": 2,
+      "phaseTitle": "Verify",
+      "agentId": "adcb751e10cafcf28",
+      "model": "claude-fable-5",
+      "state": "done",
+      "startedAt": 1787000941721,
+      "lastProgressAt": 1787000941721,
+      "cached": true,
+      "resultPreview": "{\"real\":true,\"reason\":\"Confirmed in code: runLiveVisionDemo (index.html:1214-1250) runs only the OpenCV worker (no Gemini) and passes a hardcoded med with confidence:\\\"high\\\" and fda=null to renderResult; since matched is false, line 1702-1704 renders the badge \\\"AI READ · HIGH CONFIDENCE\\\", and line 1745 unconditionally emits the \\\"Read by Gemini AI\\\" source chip, with line 1746's note falsely ca…",
+      "promptPreview": "Adversarially verify this review finding against the ACTUAL code/site. Read the file at the cited location yourself. Refute it if it is wrong, already handled, or overstated. Default to real=false when uncertain.\n\nFinding (JSON): {\"title\":\"Live vision demo result is branded \\\"AI READ · HIGH CONFIDENCE\\\" + \\\"Read by Gemini AI\\\" — but no AI ran\",\"where\":\"index.html:1699-1705 (badge), index.html:1745…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 8,
+      "label": "verify:Desktop drag-and-drop demand",
+      "phaseIndex": 2,
+      "phaseTitle": "Verify",
+      "agentId": "aa510098fea6a7006",
+      "model": "claude-fable-5",
+      "state": "done",
+      "startedAt": 1787000941721,
+      "lastProgressAt": 1787000941721,
+      "cached": true,
+      "resultPreview": "{\"real\":true,\"reason\":\"Confirmed in index.html: the drop handler (line 1273) gates on raw getKey() while every other scan entry point (lines 1202-1206, 1927) uses ensureKeyThen -> canScanLive(), which honors PROXY_URL (\\\"/api/gemini\\\" on the deployed site, line 717). The downstream scanFromDataUrl (line 1334) and the API call (lines 1552-1555) are already proxy-aware, so a keyless drop would scan …",
+      "promptPreview": "Adversarially verify this review finding against the ACTUAL code/site. Read the file at the cited location yourself. Refute it if it is wrong, already handled, or overstated. Default to real=false when uncertain.\n\nFinding (JSON): {\"title\":\"Desktop drag-and-drop demands a Gemini key even though the deployed proxy makes keyless scanning work\",\"where\":\"index.html:1273\",\"severity\":\"major\",\"problem\":\"T…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 9,
+      "label": "verify:Settings sheet copy contradi",
+      "phaseIndex": 2,
+      "phaseTitle": "Verify",
+      "agentId": "a529d0bbf204dc008",
+      "model": "claude-fable-5",
+      "state": "done",
+      "startedAt": 1787000941722,
+      "lastProgressAt": 1787000941722,
+      "cached": true,
+      "resultPreview": "{\"real\":true,\"reason\":\"Confirmed in source: index.html:675 statically says \\\"without it, MedLens runs in demo mode\\\" and :691 says \\\"The full drug-clash demo needs no key at all\\\", while :717/:742 make keyless live scanning work on the deployed origin via the /api/gemini Worker proxy (verified in deploy/worker.js:21-47). #demoEscape visibility (index.html:2041) toggles on getKey() rather than canS…",
+      "promptPreview": "Adversarially verify this review finding against the ACTUAL code/site. Read the file at the cited location yourself. Refute it if it is wrong, already handled, or overstated. Default to real=false when uncertain.\n\nFinding (JSON): {\"title\":\"Settings sheet copy contradicts the deployed zero-setup proxy\",\"where\":\"index.html:675 and index.html:691, live Settings modal\",\"severity\":\"major\",\"problem\":\"Se…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 10,
+      "label": "verify:Empty \"Interactions\" section",
+      "phaseIndex": 2,
+      "phaseTitle": "Verify",
+      "agentId": "a4b8589039b9a3599",
+      "model": "claude-fable-5",
+      "state": "done",
+      "startedAt": 1787000941722,
+      "lastProgressAt": 1787000941722,
+      "cached": true,
+      "resultPreview": "{\"real\":true,\"reason\":\"Verified in index.html: runLiveVisionDemo passes interactions: [] (line 1236); the Interactions section at 1839-1842 renders unconditionally while seek_doctor is guarded at 1833; list([]) returns \\\"\\\" so the output is a styled white .section card (CSS 337-347, uppercase h3) containing only the heading. No CSS or normalization hides it — the Gemini normalizer (line 1626) even…",
+      "promptPreview": "Adversarially verify this review finding against the ACTUAL code/site. Read the file at the cited location yourself. Refute it if it is wrong, already handled, or overstated. Default to real=false when uncertain.\n\nFinding (JSON): {\"title\":\"Empty \\\"Interactions\\\" section renders as a bare heading on the live vision demo\",\"where\":\"index.html:1839-1842, verified live at /?livedemo=1 (section textLen …"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 11,
+      "label": "verify:\"Watch it count pills — live",
+      "phaseIndex": 2,
+      "phaseTitle": "Verify",
+      "agentId": "a6aae51e1ac5a29ec",
+      "model": "claude-fable-5",
+      "state": "done",
+      "startedAt": 1787000941722,
+      "lastProgressAt": 1787000941722,
+      "cached": true,
+      "resultPreview": "{\"real\":true,\"reason\":\"Reproduced exactly on the live site at 375x812: btnLiveDemo renders 285x66 at y=790 (finding said 286x66 @ y=789), is the only button wrapping to two lines (others are 45-47px tall), and sits 4th in the stack with only ~22px visible above the 812px fold. Source (index.html:589-594) confirms the 38-char em-dash label and no mobile CSS override; the suggested fix hook (refresh…",
+      "promptPreview": "Adversarially verify this review finding against the ACTUAL code/site. Read the file at the cited location yourself. Refute it if it is wrong, already handled, or overstated. Default to real=false when uncertain.\n\nFinding (JSON): {\"title\":\"\\\"Watch it count pills — live vision demo\\\" button: too long, wraps to two lines, buried 4th in the stack, below the fold\",\"where\":\"index.html:593, scan screen …"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 12,
+      "label": "verify:Drag-and-drop gate checks ge",
+      "phaseIndex": 2,
+      "phaseTitle": "Verify",
+      "agentId": "ae32c4115352f1198",
+      "model": "claude-fable-5",
+      "state": "done",
+      "startedAt": 1787000941722,
+      "lastProgressAt": 1787000941722,
+      "cached": true,
+      "resultPreview": "{\"real\":true,\"reason\":\"Verified in index.html: drop handler (line 1273) gates on getKey() (localStorage only) while every other scan entry (lines 1202-1206, 1927) uses ensureKeyThen -> canScanLive() (line 742: key OR PROXY_URL). On the deployed workers.dev site PROXY_URL='/api/gemini' (line 717), so proxy-only desktop users dropping an image are wrongly bounced to Settings told to add a key, even …",
+      "promptPreview": "Adversarially verify this review finding against the ACTUAL code/site. Read the file at the cited location yourself. Refute it if it is wrong, already handled, or overstated. Default to real=false when uncertain.\n\nFinding (JSON): {\"title\":\"Drag-and-drop gate checks getKey() instead of canScanLive(), locking out proxy users\",\"where\":\"index.html:1273\",\"severity\":\"major\",\"problem\":\"Every other scan e…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 13,
+      "label": "verify:Worker init failure is never",
+      "phaseIndex": 2,
+      "phaseTitle": "Verify",
+      "agentId": "af1f701ec0bb844a4",
+      "model": "claude-fable-5",
+      "state": "done",
+      "startedAt": 1787000941722,
+      "lastProgressAt": 1787000941722,
+      "cached": true,
+      "resultPreview": "{\"real\":true,\"reason\":\"Verified line-by-line: the worker's 30s init deadline (vision-worker.js:30-34) posts no message unless scans were already queued, and the page never queues scans pre-readiness since visionAnalyze runs only after visionWaitReady(true). visionReadyPromise resolves only on a 'ready' message or worker onerror (index.html:1432-1446), neither of which fires in this branch, so visi…",
+      "promptPreview": "Adversarially verify this review finding against the ACTUAL code/site. Read the file at the cited location yourself. Refute it if it is wrong, already handled, or overstated. Default to real=false when uncertain.\n\nFinding (JSON): {\"title\":\"Worker init failure is never signalled to the page — every scan stalls the full 90 s, permanently\",\"where\":\"vision-worker.js:30-34 and index.html:1432-1446, 145…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 14,
+      "label": "verify:Cache version bump evicts th",
+      "phaseIndex": 2,
+      "phaseTitle": "Verify",
+      "agentId": "a16ffa72bd37b13f6",
+      "model": "claude-fable-5",
+      "state": "done",
+      "startedAt": 1787000941722,
+      "lastProgressAt": 1787000941722,
+      "cached": true,
+      "resultPreview": "{\"real\":true,\"reason\":\"Confirmed in C:\\\\Users\\\\LEGION\\\\Desktop\\\\MedLens Vision\\\\sw.js: opencv.js is written to the single versioned cache 'medlens-vision-v5' (line 65), install pre-caches only SHELL which excludes opencv.js (lines 9-10), and activate deletes every cache != CACHE (line 24) with no migration — so each version bump (already at v5) evicts the 13.4 MB engine. One nuance the finding ove…",
+      "promptPreview": "Adversarially verify this review finding against the ACTUAL code/site. Read the file at the cited location yourself. Refute it if it is wrong, already handled, or overstated. Default to real=false when uncertain.\n\nFinding (JSON): {\"title\":\"Cache version bump evicts the immutable 14 MB opencv.js — full re-download on every app update\",\"where\":\"sw.js:5, sw.js:21-27, sw.js:60-71\",\"severity\":\"major\",\"…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 15,
+      "label": "verify:Winner-take-all polarity vot",
+      "phaseIndex": 2,
+      "phaseTitle": "Verify",
+      "agentId": "a17836351e4c394f2",
+      "model": "claude-fable-5",
+      "state": "done",
+      "startedAt": 1787000941722,
+      "lastProgressAt": 1787000941722,
+      "cached": true,
+      "resultPreview": "{\"real\":true,\"reason\":\"Verified at vision-worker.js:368-387: bright/dark/Hough families are gated separately and only the most populous survives (candidates[0]); the only merge anywhere is gridRecover's concat at line 390 — bright∪dark union genuinely never happens, and torn holes found by the dark pass are discarded when bright wins. The gap binds in the common sequential-use pattern: gridRecover…",
+      "promptPreview": "Adversarially verify this review finding against the ACTUAL code/site. Read the file at the cited location yourself. Refute it if it is wrong, already handled, or overstated. Default to real=false when uncertain.\n\nFinding (JSON): {\"title\":\"Winner-take-all polarity vote structurally caps the count on mixed sheets (HIGHEST-YIELD CHANGE #1)\",\"where\":\"C:\\\\Users\\\\LEGION\\\\Desktop\\\\MedLens Vision\\\\vision…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 16,
+      "label": "verify:Foil-back sheets need a blur",
+      "phaseIndex": 2,
+      "phaseTitle": "Verify",
+      "agentId": "a603e5e3cde0b411a",
+      "model": "claude-fable-5",
+      "state": "done",
+      "startedAt": 1787000941722,
+      "lastProgressAt": 1787000941722,
+      "cached": true,
+      "resultPreview": "{\"real\":true,\"reason\":\"Verified against vision-worker.js: the top-hat/black-hat at line 201 runs on raw gray with no pre-blur, bias=15 at all call sites (363/365/380/381), and no blurred/bump-detection pass exists anywhere. Eval data confirms photo-02 (Ibumex foil back, 10 cells per manifest.json) scored 4/10 — the largest error in the baseline — and the author's own eval notes diagnose the same r…",
+      "promptPreview": "Adversarially verify this review finding against the ACTUAL code/site. Read the file at the cited location yourself. Refute it if it is wrong, already handled, or overstated. Default to real=false when uncertain.\n\nFinding (JSON): {\"title\":\"Foil-back sheets need a blur-then-tophat bump pass, not the raw-intensity pass (HIGHEST-YIELD CHANGE #2)\",\"where\":\"C:\\\\Users\\\\LEGION\\\\Desktop\\\\MedLens Vision\\\\v…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 17,
+      "label": "verify:The cited v3 metrics are act",
+      "phaseIndex": 2,
+      "phaseTitle": "Verify",
+      "agentId": "aa30c2eb89b662350",
+      "model": "claude-fable-5",
+      "state": "done",
+      "startedAt": 1787000941722,
+      "lastProgressAt": 1787000941722,
+      "cached": true,
+      "resultPreview": "{\"real\":true,\"reason\":\"Verified on disk: eval-baseline-notes.txt:1 explicitly labels the run \\\"detector v2 + OpenCV 5\\\", and its summary line (detect 4/6, exact 1/3, MAE 3.00) is identical to the numbers being attributed to v3. Timestamps confirm the eval (11:15 PM) predates the current vision-worker.js (11:29 PM), whose v3 code (colorResolved/color-evidence at lines 406-428) implements exactly th…",
+      "promptPreview": "Adversarially verify this review finding against the ACTUAL code/site. Read the file at the cited location yourself. Refute it if it is wrong, already handled, or overstated. Default to real=false when uncertain.\n\nFinding (JSON): {\"title\":\"The cited v3 metrics are actually the v2 baseline — rerun the 8-photo eval before tuning anything\",\"where\":\"C:\\\\Users\\\\LEGION\\\\Desktop\\\\MedLens Vision\\\\corpus\\\\…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 18,
+      "label": "verify:Color-classifier thresholds",
+      "phaseIndex": 2,
+      "phaseTitle": "Verify",
+      "agentId": "ac1fe4600dc5a78a3",
+      "model": "claude-fable-5",
+      "state": "done",
+      "startedAt": 1787000941722,
+      "lastProgressAt": 1787000941722,
+      "cached": true,
+      "resultPreview": "{\"real\":true,\"reason\":\"Code claims verified: thresholds at vision-worker.js:413-414 are raw 0-255 constants (dV>18, dV<-30, colorDist<18) and sheetColorRef (289-308) is one global per-channel median pooled across all cells' rings — no local reference, so illumination gradients both starve the colorDist empty path and let dV>18 false-fire pill on bright-end empty cells. However two elements are ove…",
+      "promptPreview": "Adversarially verify this review finding against the ACTUAL code/site. Read the file at the cited location yourself. Refute it if it is wrong, already handled, or overstated. Default to real=false when uncertain.\n\nFinding (JSON): {\"title\":\"Color-classifier thresholds are absolute 8-bit magic numbers against a GLOBAL sheet reference — not illumination-invariant\",\"where\":\"C:\\\\Users\\\\LEGION\\\\Desktop\\…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 19,
+      "label": "verify:Texture fallback still hard-",
+      "phaseIndex": 2,
+      "phaseTitle": "Verify",
+      "agentId": "ae815b19d38b56255",
+      "model": "claude-fable-5",
+      "state": "done",
+      "startedAt": 1787000941722,
+      "lastProgressAt": 1787000941722,
+      "cached": true,
+      "resultPreview": "{\"real\":true,\"reason\":\"Verified in C:\\\\Users\\\\LEGION\\\\Desktop\\\\MedLens Vision\\\\vision-worker.js: line 422 (`c.empty = thr !== null && c.sharp > thr`) applies the fixed sharper=empty polarity to every cell the color tier leaves unresolved, and largestGapThreshold (lines 171-183) picks only the split point, not the side. colorResolved is never used to anchor polarity — only to gate the all-abstain c…",
+      "promptPreview": "Adversarially verify this review finding against the ACTUAL code/site. Read the file at the cited location yourself. Refute it if it is wrong, already handled, or overstated. Default to real=false when uncertain.\n\nFinding (JSON): {\"title\":\"Texture fallback still hard-codes the polarity (empty = sharper) that the eval proved inverts\",\"where\":\"C:\\\\Users\\\\LEGION\\\\Desktop\\\\MedLens Vision\\\\vision-worke…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 20,
+      "label": "verify:All-empty packs return null",
+      "phaseIndex": 2,
+      "phaseTitle": "Verify",
+      "agentId": "abe374a17c42bdc56",
+      "model": "claude-fable-5",
+      "state": "done",
+      "startedAt": 1787000941722,
+      "lastProgressAt": 1787000941722,
+      "cached": true,
+      "resultPreview": "{\"real\":true,\"reason\":\"Confirmed in code: detectCellsByContour gates at fill<0.6 (line 238) and aspect>3.2 (line 237), gateUniform (311-323) needs >=4 uniform cells, and countPills' only fallback is the kernelDiv-1.6 retry before `return null` at line 385 — gridRecover (389) runs only after a family already exists, so no path can ever emit an empty-pack verdict. The project's own eval notes (corpu…",
+      "promptPreview": "Adversarially verify this review finding against the ACTUAL code/site. Read the file at the cited location yourself. Refute it if it is wrong, already handled, or overstated. Default to real=false when uncertain.\n\nFinding (JSON): {\"title\":\"All-empty packs return null — accept a torn-cell family via the grid invariant\",\"where\":\"C:\\\\Users\\\\LEGION\\\\Desktop\\\\MedLens Vision\\\\vision-worker.js:310-323 (g…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 21,
+      "label": "verify:gridRecover invents 'empty'",
+      "phaseIndex": 2,
+      "phaseTitle": "Verify",
+      "agentId": "ad4af46cec08424e0",
+      "model": "claude-fable-5",
+      "state": "done",
+      "startedAt": 1787000941722,
+      "lastProgressAt": 1787000941722,
+      "cached": true,
+      "resultPreview": "{\"real\":true,\"reason\":\"Confirmed in code: gridRecover (vision-worker.js:328-352) uses gray only for bounds checks and samples zero pixels; line 424 forces every recovered position to empty=true, which feeds the returned empty count and the red-X overlay. The reachable trigger is simpler than the finding's honeycomb/tilt scenarios: any single missed detection in an ordinary rectangular grid (misses…",
+      "promptPreview": "Adversarially verify this review finding against the ACTUAL code/site. Read the file at the cited location yourself. Refute it if it is wrong, already handled, or overstated. Default to real=false when uncertain.\n\nFinding (JSON): {\"title\":\"gridRecover invents 'empty' cells without consulting a single pixel\",\"where\":\"C:\\\\Users\\\\LEGION\\\\Desktop\\\\MedLens Vision\\\\vision-worker.js:328-352\",\"severity\":\"…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 22,
+      "label": "verify:An openFDA name match suppre",
+      "phaseIndex": 2,
+      "phaseTitle": "Verify",
+      "agentId": "ac133f7ce9b1378e6",
+      "model": "claude-fable-5",
+      "state": "done",
+      "startedAt": 1787000941722,
+      "lastProgressAt": 1787000941722,
+      "cached": true,
+      "resultPreview": "{\"real\":true,\"reason\":\"Verified in index.html: line 1702-1704 replaces the confidence badge with a green \\\"NAME FOUND · OPENFDA\\\" badge whenever fda.matched, and line 1711 gates the \\\"Not fully sure this is X\\\" banner on `!matched && conf === \\\"low\\\"` — med.confidence is used nowhere else in the card, so a match erases the uncertainty signal entirely. fdaMatchesMed (1689-1696) only checks token ov…",
+      "promptPreview": "Adversarially verify this review finding against the ACTUAL code/site. Read the file at the cited location yourself. Refute it if it is wrong, already handled, or overstated. Default to real=false when uncertain.\n\nFinding (JSON): {\"title\":\"An openFDA name match suppresses the low-confidence warning and swaps in a green badge\",\"where\":\"C:\\\\Users\\\\LEGION\\\\Desktop\\\\MedLens Vision\\\\index.html:1700-171…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 23,
+      "label": "verify:Children's medicines have no",
+      "phaseIndex": 2,
+      "phaseTitle": "Verify",
+      "agentId": "ac4674fff2e7129a2",
+      "model": "claude-fable-5",
+      "state": "done",
+      "startedAt": 1787000941722,
+      "lastProgressAt": 1787000941722,
+      "cached": true,
+      "resultPreview": "{\"real\":true,\"reason\":\"Verified at index.html:1582-1590. The dosing rules contain exactly what the finding claims: OTC → \\\"give the typical adult dosing from the label\\\", rx-only → exact safe string, plus \\\"never give doses for children\\\" — but no branch for products that ARE children's medicines. For a kids' OTC syrup the rules self-contradict: rule 1 demands adult/label dosing, rule 3 forbids pe…",
+      "promptPreview": "Adversarially verify this review finding against the ACTUAL code/site. Read the file at the cited location yourself. Refute it if it is wrong, already handled, or overstated. Default to real=false when uncertain.\n\nFinding (JSON): {\"title\":\"Children's medicines have no rule in the AI prompt — adult dosing can render on a pediatric product\",\"where\":\"C:\\\\Users\\\\LEGION\\\\Desktop\\\\MedLens Vision\\\\index.…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 24,
+      "label": "verify:Hero claim 'cross-checked ag",
+      "phaseIndex": 2,
+      "phaseTitle": "Verify",
+      "agentId": "a02e6ea9eb79870ec",
+      "model": "claude-fable-5",
+      "state": "done",
+      "startedAt": 1787000941722,
+      "lastProgressAt": 1787000941722,
+      "cached": true,
+      "resultPreview": "{\"real\":true,\"reason\":\"Confirmed: hero (index.html:580) says the AI explanation is \\\"cross-checked against official drug data,\\\" but the code (lines 1360-1367) fetches openFDA AFTER Gemini writes the explanation, never feeds it to the AI, and only validates a name overlap (fdaMatchesMed, line 1689); the Sources note (line 1746) scopes the check to name-existence. US-only gap is also real. However …",
+      "promptPreview": "Adversarially verify this review finding against the ACTUAL code/site. Read the file at the cited location yourself. Refute it if it is wrong, already handled, or overstated. Default to real=false when uncertain.\n\nFinding (JSON): {\"title\":\"Hero claim 'cross-checked against official drug data' overstates what openFDA does\",\"where\":\"C:\\\\Users\\\\LEGION\\\\Desktop\\\\MedLens Vision\\\\index.html:580 (also RE…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 25,
+      "label": "verify:Scorecard today: Substance 8",
+      "phaseIndex": 2,
+      "phaseTitle": "Verify",
+      "agentId": "a70244359f9126921",
+      "model": "claude-fable-5",
+      "state": "done",
+      "startedAt": 1787000941722,
+      "lastProgressAt": 1787000941722,
+      "cached": true,
+      "resultPreview": "{\"real\":true,\"reason\":\"Every factual premise checks out against the code: all nine claimed vision techniques exist at the cited functions in vision-worker.js and the v3 code (sheetColorRef, autoCannyThresholds) is in deploy/dist; eval numbers match corpus/eval-baseline-notes.txt line 9 verbatim (detect 4/6, exact 1/3, MAE 3.00, v2); corpus is n=8; .git/config has no remote (no public repo); selfte…",
+      "promptPreview": "Adversarially verify this review finding against the ACTUAL code/site. Read the file at the cited location yourself. Refute it if it is wrong, already handled, or overstated. Default to real=false when uncertain.\n\nFinding (JSON): {\"title\":\"Scorecard today: Substance 8, Innovation 7, Impact 7, Execution 6 (28/40)\",\"where\":\"https://medlens-vision.rohnringo3.workers.dev + C:\\\\Users\\\\LEGION\\\\Desktop\\\\…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 26,
+      "label": "verify:No public repo — judges cann",
+      "phaseIndex": 2,
+      "phaseTitle": "Verify",
+      "agentId": "ad95f89c62dd456ba",
+      "model": "claude-fable-5",
+      "state": "done",
+      "startedAt": 1787000941722,
+      "lastProgressAt": 1787000941722,
+      "cached": true,
+      "resultPreview": "{\"real\":true,\"reason\":\"Confirmed against the working tree: git remote -v is empty and remote.origin.url is unset, so the repo is local-only. The judge-facing evidence the finding cites (README.md, build-opencv5.ps1, corpus/manifest.json, eval-baseline notes) is tracked in git but exists nowhere public, and the honest v1→v2→OpenCV5-build→eval→v3 commit history is exactly as described. No Co-Authore…",
+      "promptPreview": "Adversarially verify this review finding against the ACTUAL code/site. Read the file at the cited location yourself. Refute it if it is wrong, already handled, or overstated. Default to real=false when uncertain.\n\nFinding (JSON): {\"title\":\"No public repo — judges cannot see the code, the build script, or the story\",\"where\":\"C:\\\\Users\\\\LEGION\\\\Desktop\\\\MedLens Vision\\\\.git (git remote -v returns no…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 27,
+      "label": "verify:Detector v3 shipped but neve",
+      "phaseIndex": 2,
+      "phaseTitle": "Verify",
+      "agentId": "a1e2c27e70b45eb9b",
+      "model": "claude-fable-5",
+      "state": "done",
+      "startedAt": 1787000941722,
+      "lastProgressAt": 1787000941722,
+      "cached": true,
+      "resultPreview": "{\"real\":true,\"reason\":\"Confirmed: HEAD commit 5238bae is the v3 detector rewrite (only vision-worker.js changed, no eval recorded, message says just \\\"corpus eval improving\\\"), while the only quantified eval anywhere in the repo is corpus\\\\eval-baseline-notes.txt — explicitly labeled \\\"detector v2\\\", timestamped 23:15 vs the v3 commit at 23:34. No eval-v3 file exists, git status is clean, and a re…",
+      "promptPreview": "Adversarially verify this review finding against the ACTUAL code/site. Read the file at the cited location yourself. Refute it if it is wrong, already handled, or overstated. Default to real=false when uncertain.\n\nFinding (JSON): {\"title\":\"Detector v3 shipped but never measured — the headline numbers on file are v2's\",\"where\":\"C:\\\\Users\\\\LEGION\\\\Desktop\\\\MedLens Vision\\\\corpus\\\\eval-baseline-notes…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 28,
+      "label": "verify:README hides the project's b",
+      "phaseIndex": 2,
+      "phaseTitle": "Verify",
+      "agentId": "a9db54de5079ac522",
+      "model": "claude-fable-5",
+      "state": "done",
+      "startedAt": 1787000941722,
+      "lastProgressAt": 1787000941722,
+      "cached": true,
+      "resultPreview": "{\"real\":true,\"reason\":\"Verified directly: README.md line 43 claims the real-photo corpus is a future milestone (\\\"photography in progress\\\"), but corpus/ contains 8 photos, manifest.json with hand-labeled ground truth (including the exact null='even a human can't tell' convention), eval-baseline-notes.txt with measured baseline numbers (detect 4/6, exact count 1/3, MAE 3.00) and a written 4-point …",
+      "promptPreview": "Adversarially verify this review finding against the ACTUAL code/site. Read the file at the cited location yourself. Refute it if it is wrong, already handled, or overstated. Default to real=false when uncertain.\n\nFinding (JSON): {\"title\":\"README hides the project's best rigor: it claims the corpus doesn't exist yet\",\"where\":\"C:\\\\Users\\\\LEGION\\\\Desktop\\\\MedLens Vision\\\\README.md line 43 ('A real-p…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 29,
+      "label": "verify:Live ?eval=1 is an empty pag",
+      "phaseIndex": 2,
+      "phaseTitle": "Verify",
+      "agentId": "abfc40346e7b731ec",
+      "model": "claude-fable-5",
+      "state": "done",
+      "startedAt": 1787000941722,
+      "lastProgressAt": 1787000941722,
+      "cached": true,
+      "resultPreview": "{\"real\":true,\"reason\":\"Verified end-to-end: live /corpus/manifest.json returns 404 via curl while root returns 200; deploy\\\\dist\\\\ has no corpus directory; the deployed index.html ships the ?eval=1 harness whose fetch at line 2271 falls into the catch that prints 'No corpus yet. Add photos to corpus/...'. Local corpus\\\\ (manifest.json + 8 JPEGs, 640KB) exists and the proposed copy-and-redeploy fix…",
+      "promptPreview": "Adversarially verify this review finding against the ACTUAL code/site. Read the file at the cited location yourself. Refute it if it is wrong, already handled, or overstated. Default to real=false when uncertain.\n\nFinding (JSON): {\"title\":\"Live ?eval=1 is an empty page — corpus/ was never deployed\",\"where\":\"https://medlens-vision.rohnringo3.workers.dev/corpus/manifest.json returns 404; deploy\\\\dis…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 30,
+      "label": "verify:n=3 is the real corpus, not",
+      "phaseIndex": 2,
+      "phaseTitle": "Verify",
+      "agentId": "a5f1668318b04c3eb",
+      "model": "claude-fable-5",
+      "state": "done",
+      "startedAt": 1787000941722,
+      "lastProgressAt": 1787000941722,
+      "cached": true,
+      "resultPreview": "{\"real\":true,\"reason\":\"Manifest confirms only photos 02/03/05 carry full ground truth, and the eval harness (index.html:2315 filters countErr!=null; photos 06/07 were undetected per eval-baseline-notes.txt) means the headline 'exact count 1/3, MAE 3.00, intact-exact 0/3' are genuine n=3 statistics — arithmetic verified: MAE=(6+3+0)/3. Minor nit: photos 06/07 do have cells:8 count truth, so count-t…",
+      "promptPreview": "Adversarially verify this review finding against the ACTUAL code/site. Read the file at the cited location yourself. Refute it if it is wrong, already handled, or overstated. Default to real=false when uncertain.\n\nFinding (JSON): {\"title\":\"n=3 is the real corpus, not n=8 — too small to claim anything\",\"where\":\"C:\\\\Users\\\\LEGION\\\\Desktop\\\\MedLens Vision\\\\corpus\\\\manifest.json (only photos 02, 03, 0…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 31,
+      "label": "verify:Real-photo eval framing: cur",
+      "phaseIndex": 2,
+      "phaseTitle": "Verify",
+      "agentId": "a5ba31358e7e28924",
+      "model": "claude-fable-5",
+      "state": "done",
+      "startedAt": 1787000941722,
+      "lastProgressAt": 1787000941722,
+      "cached": true,
+      "resultPreview": "{\"real\":false,\"reason\":\"Premise is factually wrong: README.md contains no eval numbers at all (grep for 4/6/MAE/exact finds nothing) — it says the real-photo corpus is a \\\"next milestone\\\", so nothing is \\\"stated flat\\\" or reads as weakness there. The numbers exist only in corpus\\\\eval-baseline-notes.txt, an internal notes file that already delivers the requested framing: explicitly labeled a v2 B…",
+      "promptPreview": "Adversarially verify this review finding against the ACTUAL code/site. Read the file at the cited location yourself. Refute it if it is wrong, already handled, or overstated. Default to real=false when uncertain.\n\nFinding (JSON): {\"title\":\"Real-photo eval framing: currently reads as weakness; reframe as the measured-improvement arc\",\"where\":\"README.md + future submission text\",\"severity\":\"major\",\"…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 32,
+      "label": "verify:The self-built OpenCV 5 stor",
+      "phaseIndex": 2,
+      "phaseTitle": "Verify",
+      "agentId": "ad3916f2fd5575f00",
+      "model": "claude-fable-5",
+      "state": "done",
+      "startedAt": 1787000941722,
+      "lastProgressAt": 1787000941722,
+      "cached": true,
+      "resultPreview": "{\"real\":true,\"reason\":\"Verified against both local source and the live deployed page. All user-facing copy in the app says only \\\"OpenCV\\\" with no version and no self-built mention: line 600 (\\\"OpenCV on your phone — finds the label...\\\"), line 1233 livedemo text (\\\"the real OpenCV pipeline running on your phone\\\"), line 1537 and line 1801 result strings (\\\"Measured by OpenCV running on this phone…",
+      "promptPreview": "Adversarially verify this review finding against the ACTUAL code/site. Read the file at the cited location yourself. Refute it if it is wrong, already handled, or overstated. Default to real=false when uncertain.\n\nFinding (JSON): {\"title\":\"The self-built OpenCV 5 story is told well in README but invisible everywhere judges will actually look\",\"where\":\"Live page copy says only 'OpenCV' (no 5, no se…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 33,
+      "label": "verify:AWS pillar is vapor while th",
+      "phaseIndex": 2,
+      "phaseTitle": "Verify",
+      "agentId": "a2b79f446ecbac687",
+      "model": "claude-fable-5",
+      "state": "done",
+      "startedAt": 1787000941722,
+      "lastProgressAt": 1787000941722,
+      "cached": true,
+      "resultPreview": "{\"real\":true,\"reason\":\"Both cited README lines exist verbatim (line 9 \\\"powered by AWS\\\", line 50 \\\"AWS evaluation backbone... pending account setup\\\"), and a project-wide grep confirms AWS appears nowhere except README.md — no S3/Lambda code exists at all. The blocker (parent's card, pending since mid-August) is corroborated. The finding's hedge \\\"if judging weights AWS\\\" is confirmed as real: th…",
+      "promptPreview": "Adversarially verify this review finding against the ACTUAL code/site. Read the file at the cited location yourself. Refute it if it is wrong, already handled, or overstated. Default to real=false when uncertain.\n\nFinding (JSON): {\"title\":\"AWS pillar is vapor while the README front-loads 'powered by AWS'\",\"where\":\"README.md line 9 ('powered by AWS') and line 50 ('AWS evaluation backbone... pending…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 34,
+      "label": "verify:Demo video sequencing: do no",
+      "phaseIndex": 2,
+      "phaseTitle": "Verify",
+      "agentId": "a2d419586fd7e28ea",
+      "model": "claude-fable-5",
+      "state": "done",
+      "startedAt": 1787000941722,
+      "lastProgressAt": 1787000941722,
+      "cached": true,
+      "resultPreview": "{\"real\":true,\"reason\":\"Every premise verified against the repo: no demo video exists anywhere in the project (only vendored OpenCV sample videos) and README has no video link; the photo-03 inversion is documented verbatim in corpus\\\\eval-baseline-notes.txt (\\\"CLASSIFICATION INVERTED on the easiest photo\\\") with manifest.json calling photo-03 \\\"the clean flagship case\\\", so the live-demo inversion …",
+      "promptPreview": "Adversarially verify this review finding against the ACTUAL code/site. Read the file at the cited location yourself. Refute it if it is wrong, already handled, or overstated. Default to real=false when uncertain.\n\nFinding (JSON): {\"title\":\"Demo video sequencing: do not record until v3 numbers are in\",\"where\":\"Roadmap (video not made); deadline Oct 26, submissions open Aug 26\",\"severity\":\"major\",\"p…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 35,
+      "label": "verify:analyze() takes ~11 s at pro",
+      "phaseIndex": 2,
+      "phaseTitle": "Verify",
+      "agentId": "a1325808b6b1556ae",
+      "model": "claude-fable-5",
+      "state": "done",
+      "startedAt": 1787000941722,
+      "lastProgressAt": 1787000941722,
+      "cached": true,
+      "resultPreview": "{\"real\":true,\"reason\":\"CONFIRMED by reading the code and by live re-measurement on the deployed site. Code: vision-worker.js:198 builds a MORPH_RECT structuring element of max(31, minDim/3) = 384px for a 1536x1152 frame; countPills (363-367) runs bright top-hat + dark black-hat + HoughCircles every time; the no-candidate retry (380-383) repeats both contour passes with kernelDiv=1.6 (~721px kernel…",
+      "promptPreview": "Adversarially verify this review finding against the ACTUAL code/site. Read the file at the cited location yourself. Refute it if it is wrong, already handled, or overstated. Default to real=false when uncertain.\n\nFinding (JSON): {\"title\":\"analyze() takes ~11 s at production resolution on a desktop i9 — will blow the 30 s timeout and the battery on a $30 Android\",\"where\":\"vision-worker.js:198,363-…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 36,
+      "label": "verify:Self-built OpenCV 5 wasm has",
+      "phaseIndex": 2,
+      "phaseTitle": "Verify",
+      "agentId": "a41163af44717cb94",
+      "model": "claude-fable-5",
+      "state": "done",
+      "startedAt": 1787000941722,
+      "lastProgressAt": 1787000941722,
+      "cached": true,
+      "resultPreview": "{\"real\":true,\"reason\":\"Verified end-to-end: build-opencv5.ps1:94 passes no --simd; the cloned build_js.py defaults simd off (adds -DCV_ENABLE_INTRINSICS=OFF, no -msimd128); the actual build's CMakeCache.txt confirms scalar flags (CMAKE_CXX_FLAGS line 237 lacks -msimd128, CV_ENABLE_INTRINSICS=OFF line 518); and the shipped opencv.js in root + deploy/dist is md5-identical to that build output. visio…",
+      "promptPreview": "Adversarially verify this review finding against the ACTUAL code/site. Read the file at the cited location yourself. Refute it if it is wrong, already handled, or overstated. Default to real=false when uncertain.\n\nFinding (JSON): {\"title\":\"Self-built OpenCV 5 wasm has no SIMD — leaving a free 2-4x speedup on the table\",\"where\":\"build-opencv5.ps1:94\",\"severity\":\"major\",\"problem\":\"build_js.py is inv…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 37,
+      "label": "verify:Every SW version bump delete",
+      "phaseIndex": 2,
+      "phaseTitle": "Verify",
+      "agentId": "a01f7b58e88be40ad",
+      "model": "claude-fable-5",
+      "state": "done",
+      "startedAt": 1787000941722,
+      "lastProgressAt": 1787000941722,
+      "cached": true,
+      "resultPreview": "{\"real\":true,\"reason\":\"Confirmed in sw.js: line 5 defines the single versioned cache \\\"medlens-vision-v5\\\"; the opencv.js route (lines 60-71) writes the engine into that same CACHE (line 65); the activate handler (lines 21-27) deletes every cache != CACHE, so each version bump evicts the engine and the cache-first lookup re-downloads it in full. opencv.js is 14,073,186 bytes on disk — the 14 MB cl…",
+      "promptPreview": "Adversarially verify this review finding against the ACTUAL code/site. Read the file at the cited location yourself. Refute it if it is wrong, already handled, or overstated. Default to real=false when uncertain.\n\nFinding (JSON): {\"title\":\"Every SW version bump deletes the cached 14 MB opencv.js — users on metered data re-pay the whole engine per deploy\",\"where\":\"sw.js:5,21-27\",\"severity\":\"major\",…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 38,
+      "label": "verify:First-visit race: idle warm",
+      "phaseIndex": 2,
+      "phaseTitle": "Verify",
+      "agentId": "ac0805741c5b12a4d",
+      "model": "claude-fable-5",
+      "state": "done",
+      "startedAt": 1787000941722,
+      "lastProgressAt": 1787000941722,
+      "cached": true,
+      "resultPreview": "{\"real\":true,\"reason\":\"The race itself is verified in the code: index.html schedules the warm-up (whenIdle -> getVisionWorker, lines 1462-1467) in the same top-level script before the SW registration at 2065-2067; sw.js deliberately omits opencv.js from SHELL (lines 6-10) and relies on the fetch route (lines 60-71) to cache it. On a first visit the page is uncontrolled until install+activate+claim…",
+      "promptPreview": "Adversarially verify this review finding against the ACTUAL code/site. Read the file at the cited location yourself. Refute it if it is wrong, already handled, or overstated. Default to real=false when uncertain.\n\nFinding (JSON): {\"title\":\"First-visit race: idle warm can fetch opencv.js before the SW controls the page, so 14 MB downloads twice\",\"where\":\"index.html:1462-1467,2065-2067; sw.js:6-9,13…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 39,
+      "label": "verify:Desktop drag-and-drop demand",
+      "phaseIndex": 2,
+      "phaseTitle": "Verify",
+      "agentId": "a6cf0d1d3bbbd8bd2",
+      "model": "claude-fable-5",
+      "state": "done",
+      "startedAt": 1787000941723,
+      "lastProgressAt": 1787000941723,
+      "cached": true,
+      "resultPreview": "{\"real\":true,\"reason\":\"Confirmed in C:\\\\Users\\\\LEGION\\\\Desktop\\\\MedLens Vision\\\\index.html: drop handler (line 1273) gates on getKey() only, while canScanLive() (line 742) also accepts PROXY_URL, which is \\\"/api/gemini\\\" on the deployed workers.dev site (line 717). All other scan entry points (lines 1202-1207, 1927) use ensureKeyThen -> canScanLive() with an additional offline guard. The desktop z…",
+      "promptPreview": "Adversarially verify this review finding against the ACTUAL code/site. Read the file at the cited location yourself. Refute it if it is wrong, already handled, or overstated. Default to real=false when uncertain.\n\nFinding (JSON): {\"title\":\"Desktop drag-and-drop demands a personal Gemini key even on the deployed site where the proxy makes scans zero-setup\",\"where\":\"index.html:1273\",\"severity\":\"majo…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 40,
+      "label": "verify:First scan on a slow network",
+      "phaseIndex": 2,
+      "phaseTitle": "Verify",
+      "agentId": "ab070a35f4225decc",
+      "model": "claude-fable-5",
+      "state": "done",
+      "startedAt": 1787000941723,
+      "lastProgressAt": 1787000941723,
+      "cached": true,
+      "resultPreview": "{\"real\":true,\"reason\":\"Confirmed at index.html:1345-1360: scanFromDataUrl strictly serializes visionWaitReady(90000) + visionAnalyze (30 s guard, line 1504) before analyzeWithGemini, and visionWaitReady resolves false after burning the full 90 s on slow networks — pure dead wait since vision is then skipped anyway. Vision is optional by the code's own comment (1340-1343) and only feeds prompt hint…",
+      "promptPreview": "Adversarially verify this review finding against the ACTUAL code/site. Read the file at the cited location yourself. Refute it if it is wrong, already handled, or overstated. Default to real=false when uncertain.\n\nFinding (JSON): {\"title\":\"First scan on a slow network waits up to 90 s for the vision engine before the 300 KB Gemini call even starts\",\"where\":\"index.html:1346-1360,1222\",\"severity\":\"m…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 41,
+      "label": "verify:1-1.8 s of main-thread block",
+      "phaseIndex": 2,
+      "phaseTitle": "Verify",
+      "agentId": "a4c3cb651ef51ef68",
+      "model": "claude-fable-5",
+      "state": "done",
+      "startedAt": 1787000941723,
+      "lastProgressAt": 1787000941723,
+      "cached": true,
+      "resultPreview": "{\"real\":false,\"reason\":\"The code structure is as cited (index.html:1477-1495 sync getImageData, 1521-1522 two sync toDataURL JPEG encodes, :286 scanline animates 'top'), but the finding's central measured claim is refuted by direct measurement on the live site (medlens-vision.rohnringo3.workers.dev) on the same i9 hardware class. Instrumenting imageToImageData and imageDataToDataUrl around visionA…",
+      "promptPreview": "Adversarially verify this review finding against the ACTUAL code/site. Read the file at the cited location yourself. Refute it if it is wrong, already handled, or overstated. Default to real=false when uncertain.\n\nFinding (JSON): {\"title\":\"1-1.8 s of main-thread blocking per scan from getImageData + two toDataURL JPEG encodes, under a scanline animated via 'top'\",\"where\":\"index.html:1477-1495,1521…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 42,
+      "label": "prioritize",
+      "phaseIndex": 3,
+      "phaseTitle": "Prioritize",
+      "agentId": "af506e699a176b1b2",
+      "model": "claude-fable-5",
+      "state": "done",
+      "startedAt": 1787000941734,
+      "queuedAt": 1787000941723,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "The core OpenCV work is genuinely strong (Substance 8/10) b…",
+      "promptPreview": "Consolidate these verified findings (plus unverified minors) into ONE ranked fix queue for a solo builder. Dedupe, order by (severity × competition impact ÷ effort). Mark the under-30-minute quick wins.\n\nConfirmed major+: [{\"title\":\"Live vision demo result is branded \\\"AI READ · HIGH CONFIDENCE\\\" + \\\"Read by Gemini AI\\\" — but no AI ran\",\"where\":\"index.html:1699-1705 (badge), index.html:1745 (sourc…",
+      "lastProgressAt": 1787001042089,
+      "tokens": 84487,
+      "toolCalls": 1,
+      "durationMs": 100355,
+      "resultPreview": "{\"verdict\":\"The core OpenCV work is genuinely strong (Substance 8/10) but the entry is currently un-submittable: no public repo, the only measured accuracy numbers are the old v2 baseline, and the judge-facing surfaces actively undermine the story (the live vision demo credits Gemini, a green openFDA badge hides low-confidence reads, and analyze() runs ~11s at production resolution against a \\\"~20…"
+    }
+  ],
+  "totalTokens": 84487,
+  "totalToolCalls": 1
+}

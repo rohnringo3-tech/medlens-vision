@@ -577,7 +577,7 @@
     <div class="hero">
       <div class="eyebrow">AI for human health</div>
       <h1>Understand any medicine <span>in seconds</span></h1>
-      <p class="sub">Photograph a medicine box or pill sheet. Computer vision on your phone straightens the label and counts your pills — then AI explains it in plain language, cross-checked against official drug data.</p>
+      <p class="sub">Photograph a medicine box or pill sheet. Computer vision on your phone straightens the label and counts your pills — then AI explains it in plain language, with the name checked against the official US drug database (openFDA).</p>
     </div>
 
     <div class="scanzone" id="scanzone">
@@ -590,7 +590,7 @@
         <button class="btn btn-primary" id="btnScan">Open camera</button>
         <button class="btn btn-ghost" id="btnGallery">Choose photo</button>
         <button class="btn btn-ghost" id="btnSample">Try a sample — Advil</button>
-        <button class="btn btn-ghost" id="btnLiveDemo">Watch it count pills — live vision demo</button>
+        <button class="btn btn-ghost" id="btnLiveDemo">Watch it count pills</button>
       </div>
     </div>
     <div class="keyhint" id="keyhint"></div>
@@ -1270,7 +1270,8 @@ const zone = $("scanzone");
 zone.addEventListener("drop", e => {
   const f = e.dataTransfer.files && e.dataTransfer.files[0];
   if (f && f.type.startsWith("image/")) {
-    if (!getKey()) { toast("Add your free Gemini key in Settings first — or try the samples"); openSettings(); return; }
+    /* same gate as every other scan path: the deployed proxy counts as a key */
+    if (!canScanLive()) { toast("Add your free Gemini key in Settings first — or try the samples"); openSettings(); return; }
     handleImage(f).catch(err => { console.error(err); show("viewScan"); toast("Could not read that file — try again"); });
   }
 });
@@ -1440,6 +1441,7 @@ function getVisionWorker() {
   visionWorker.onerror = () => {
     for (const c of visionCalls.values()) c.reject(new Error("vision worker crashed"));
     visionCalls.clear();
+    visionIsReady = false;
     if (visionReadyResolve) visionReadyResolve(false);
     try { visionWorker.terminate(); } catch {}
     visionWorker = null; // next scan gets a fresh worker instead of a dead one
@@ -1583,6 +1585,7 @@ Dosing rules:
 - For over-the-counter medicines, give the typical adult dosing from the label if visible, otherwise standard label guidance.
 - If this is a prescription-only medicine (antibiotics, blood thinners, insulin, opioids, benzodiazepines, antidepressants, blood-pressure or diabetes medicines, steroids, etc.), set rx_only to true and set how_to_take to exactly one item: "Prescription medicine - take it exactly as your doctor prescribed. Do not use this scan to decide your dose." For antibiotics add a second item: "Finish the full course even if you feel better."
 - Never invent doses, and never give doses for children.
+- If this medicine is intended for children, or its dose depends on age or weight, make the FIRST how_to_take item exactly: "Children's doses depend on age and weight - ask a pharmacist or doctor for the right amount for your child."
 Other rules:
 - If there is no readable printed text anywhere in the photo — loose pills, OR a blister sheet with blank or unreadable foil — set confidence to "low" and make the FIRST warning: "Pills cannot be reliably identified by appearance alone - check the original packaging or ask a pharmacist before taking this."
 - Keep "name", "generic", "strength" and "form" in the label's own language, but write "purpose", "how_to_take", "warnings", "interactions" and "seek_doctor" in ${lang}.
@@ -1699,8 +1702,13 @@ function fdaMatchesMed(fda, med) {
 function renderResult(med, fda, ix, vision) {
   const matched = fda && fda.matched;
   const conf = (med.confidence || "medium").toLowerCase();
+  /* honesty rule: a low-confidence READ must never hide behind a green badge —
+     the openFDA match only proves the NAME exists, not that the photo was
+     read correctly. Low confidence always warns, matched or not. */
   const badge = matched
-    ? '<span class="badge ok">NAME FOUND · OPENFDA</span>'
+    ? (conf === "low"
+        ? '<span class="badge ai">NAME IN OPENFDA · LOW-CONFIDENCE READ</span>'
+        : '<span class="badge ok">NAME FOUND · OPENFDA</span>')
     : `<span class="badge ai">AI READ · ${esc(conf.toUpperCase())} CONFIDENCE</span>`;
   const rxBadge = med.rx_only ? '<span class="badge rx">PRESCRIPTION — FOLLOW YOUR DOCTOR</span>' : "";
 
@@ -1708,7 +1716,7 @@ function renderResult(med, fda, ix, vision) {
   const chips = [med.strength, med.form, med.demo ? "Sample demo" : null].filter(Boolean)
     .map(c => `<span class="chip">${esc(c)}</span>`).join("");
 
-  const lowConfBanner = (!matched && conf === "low") ? `
+  const lowConfBanner = (conf === "low") ? `
     <div class="conf-banner"><b>Not fully sure this is ${esc(med.name || med.generic)}.</b> Double-check the label on your package before trusting the details below.</div>` : "";
 
   /* interaction section */
@@ -1836,10 +1844,11 @@ function renderResult(med, fda, ix, vision) {
       <ul>${list(med.seek_doctor)}</ul>
     </div>` : ""}
 
+    ${med.interactions && med.interactions.length ? `
     <div class="section">
       <h3>Interactions</h3>
       <ul>${list(med.interactions)}</ul>
-    </div>
+    </div>` : ""}
 
     ${matched && (fda.purpose || fda.dosage || fda.warnings) ? `
     <div class="section">
