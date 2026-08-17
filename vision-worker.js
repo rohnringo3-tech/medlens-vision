@@ -60,6 +60,26 @@ function grayMedian(gray) {
   return sample[Math.floor(sample.length / 2)];
 }
 
+/* Canny thresholds from the GRADIENT distribution, not intensity: a bright
+   white table pushed intensity-median thresholds far above the actual edge
+   strengths, so the sheet outline vanished (deskew fired 0/8 on real photos). */
+function autoCannyThresholds(gray) {
+  const gx = new cv.Mat(), gy = new cv.Mat(), ax = new cv.Mat(), ay = new cv.Mat(), mag = new cv.Mat();
+  try {
+    cv.Sobel(gray, gx, cv.CV_32F, 1, 0, 3);
+    cv.Sobel(gray, gy, cv.CV_32F, 0, 1, 3);
+    cv.convertScaleAbs(gx, ax); cv.convertScaleAbs(gy, ay);
+    cv.addWeighted(ax, 0.5, ay, 0.5, 0, mag);
+    const data = mag.data, n = data.length, step = Math.max(1, Math.floor(n / 9973));
+    const sample = [];
+    for (let i = 0; i < n; i += step) { if (data[i] > 4) sample.push(data[i]); }
+    if (sample.length < 50) return { lo: 30, hi: 90 };
+    sample.sort((a, b) => a - b);
+    const hi = Math.max(30, Math.min(200, sample[Math.floor(sample.length * 0.9)]));
+    return { lo: Math.max(10, hi * 0.4), hi };
+  } finally { gx.delete(); gy.delete(); ax.delete(); ay.delete(); mag.delete(); }
+}
+
 function findLabelQuad(gray) {
   const blur = new cv.Mat(), edges = new cv.Mat(), hier = new cv.Mat();
   const kernel = cv.getStructuringElement(cv.MORPH_RECT, new cv.Size(3, 3));
@@ -67,10 +87,8 @@ function findLabelQuad(gray) {
   let best = null;
   try {
     cv.GaussianBlur(gray, blur, new cv.Size(5, 5), 0);
-    /* auto-Canny: thresholds from the image's own median instead of the
-       tutorial's fixed 50/150 — low-contrast labels stop disappearing */
-    const med = grayMedian(gray);
-    cv.Canny(blur, edges, Math.max(15, 0.66 * med), Math.min(255, Math.max(45, 1.33 * med)));
+    const t = autoCannyThresholds(blur);
+    cv.Canny(blur, edges, t.lo, t.hi);
     cv.dilate(edges, edges, kernel);
     cv.findContours(edges, contours, hier, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
     let bestArea = gray.rows * gray.cols * 0.18;
@@ -165,7 +183,7 @@ function largestGapThreshold(values) {
 }
 
 /* ---- detector v2: shape-agnostic contour pass (round, capsule, oblong) ---- */
-function detectCellsByContour(gray, inverted, bias) {
+function detectCellsByContour(gray, inverted, bias, kernelDiv = 3) {
   const bin = new cv.Mat(), kernel = cv.getStructuringElement(cv.MORPH_ELLIPSE, new cv.Size(5, 5));
   const diff = new cv.Mat();
   const contours = new cv.MatVector(), hier = new cv.Mat();
@@ -177,7 +195,7 @@ function detectCellsByContour(gray, inverted, bias) {
        larger scales — so pills pop out while the blister sheet itself, its
        borders and lighting gradients vanish. This is the multi-scale trick
        a plain local-mean threshold cannot do (the sheet border always leaks). */
-    let big = Math.max(31, Math.round(minDim / 3)); if (big % 2 === 0) big++;
+    let big = Math.max(31, Math.round(minDim / kernelDiv)); if (big % 2 === 0) big++;
     const bigK = cv.getStructuringElement(cv.MORPH_RECT, new cv.Size(big, big));
     try {
       cv.morphologyEx(gray, diff, inverted ? cv.MORPH_BLACKHAT : cv.MORPH_TOPHAT, bigK);
@@ -243,6 +261,50 @@ function detectCellsByHough(gray) {
     }
   } finally { blurred.delete(); circles.delete(); }
   return cells;
+}
+
+/* Mean color of a cell's inner disc, specular pixels excluded. */
+function cellColorStats(srcRgba, cx, cy, r) {
+  const half = Math.max(3, Math.round(r * 0.55));
+  const x0 = Math.max(0, Math.round(cx - half)), y0 = Math.max(0, Math.round(cy - half));
+  const x1 = Math.min(srcRgba.cols, Math.round(cx + half)), y1 = Math.min(srcRgba.rows, Math.round(cy + half));
+  let rs = 0, gs = 0, bs = 0, n = 0;
+  const d = srcRgba.data, W = srcRgba.cols;
+  for (let y = y0; y < y1; y += 2) for (let x = x0; x < x1; x += 2) {
+    const i = (y * W + x) * 4;
+    const R = d[i], G = d[i + 1], B = d[i + 2];
+    if (Math.max(R, G, B) >= 250) continue;
+    rs += R; gs += G; bs += B; n++;
+  }
+  if (n < 8) return null;
+  const R = rs / n, G = gs / n, B = bs / n;
+  const mx = Math.max(R, G, B), mn = Math.min(R, G, B);
+  return { R, G, B, v: mx, sat: mx ? (mx - mn) / mx : 0 };
+}
+
+/* Sheet background color, sampled from rings just OUTSIDE each cell.
+   Per-channel MEDIAN, not mean: in a tight grid the ring lands on
+   neighbouring pills too, and a mean would drag the "sheet color" toward
+   the pills — poisoning the very contrast we classify by. */
+function sheetColorRef(srcRgba, cells) {
+  const Rs = [], Gs = [], Bs = [];
+  const d = srcRgba.data, W = srcRgba.cols, H = srcRgba.rows;
+  for (const c of cells) {
+    for (let a = 0; a < 16; a++) {
+      const ang = (a / 16) * 2 * Math.PI;
+      const x = Math.round(c.cx + Math.cos(ang) * c.r * 1.35);
+      const y = Math.round(c.cy + Math.sin(ang) * c.r * 1.35);
+      if (x < 0 || y < 0 || x >= W || y >= H) continue;
+      const i = (y * W + x) * 4;
+      if (Math.max(d[i], d[i + 1], d[i + 2]) >= 250) continue;
+      Rs.push(d[i]); Gs.push(d[i + 1]); Bs.push(d[i + 2]);
+    }
+  }
+  if (Rs.length < 24) return null;
+  const med = (arr) => { arr.sort((a, b) => a - b); return arr[Math.floor(arr.length / 2)]; };
+  const R = med(Rs), G = med(Gs), B = med(Bs);
+  const mx = Math.max(R, G, B), mn = Math.min(R, G, B);
+  return { R, G, B, v: mx, sat: mx ? (mx - mn) / mx : 0 };
 }
 
 /* Keep only a plausible, mutually-uniform family of cells; null = no pack. */
@@ -311,6 +373,15 @@ function countPills(srcRgba) {
     const candidates = passes.map(p => gateUniform(p.cells)).filter(Boolean);
     countPills._dbg = { bright: bright.length, dark: dark.length, hough: hough.length, bTrace, dTrace,
       art: detectCellsByContour._art || null };
+    if (!candidates.length) {
+      /* tight-crop retry: in a rectified sheet crop the pills are LARGE
+         relative to the frame, so the standard top-hat element is too small
+         and hollows them out — try again with a much larger element */
+      const bigBright = gateUniform(detectCellsByContour(gray, false, 15, 1.6));
+      const bigDark = gateUniform(detectCellsByContour(gray, true, 15, 1.6));
+      if (bigBright) candidates.push(bigBright);
+      if (bigDark) candidates.push(bigDark);
+    }
     if (!candidates.length) return null;
     candidates.sort((a, b) => b.length - a.length);
     let cells = candidates[0];
@@ -318,24 +389,43 @@ function countPills(srcRgba) {
     const recovered = gridRecover(cells, gray);
     cells = cells.concat(recovered);
     if (cells.length > 30) return null;
-    /* texture split on DETECTED cells only; recovered ones are empty by
-       definition, and glary cells ABSTAIN — a specular highlight fakes the
-       exact texture signature of torn foil, so guessing there is lying */
+    /* Classification, three tiers of evidence:
+       1. COLOR vs the sheet's own background — a pill is saturated or brighter
+          than the sheet; an empty pocket matches the sheet, a torn hole is
+          darker. Texture alone lied on glossy colored pills (real-photo eval:
+          shiny pink tablets read as "torn foil"), color does not.
+       2. TEXTURE largest-gap split for cells color could not resolve.
+       3. Glary cells ABSTAIN, recovered grid cells are empty by definition. */
     const detected = cells.filter(c => !c.recovered);
     for (const c of detected) {
       c.spec = cellSpecularFrac(gray, c.cx, c.cy, c.r);
       c.unknown = c.spec > 0.3;
-      if (!c.unknown) c.sharp = cellSharpness(gray, c.cx, c.cy, c.r);
     }
-    const judgeable = detected.filter(c => !c.unknown);
-    const thr = largestGapThreshold(judgeable.map(c => c.sharp));
+    const ref = sheetColorRef(srcRgba, detected);
+    const unresolved = [];
+    let colorResolved = 0;
+    for (const c of detected) {
+      if (c.unknown) continue;
+      const cs = ref ? cellColorStats(srcRgba, c.cx, c.cy, c.r) : null;
+      if (cs && ref) {
+        const dSat = cs.sat - ref.sat, dV = cs.v - ref.v;
+        const colorDist = Math.hypot(cs.R - ref.R, cs.G - ref.G, cs.B - ref.B);
+        const pillEv = dSat > 0.12 || dV > 18;
+        const emptyEv = dV < -30 || (colorDist < 18 && dSat < 0.08);
+        if (pillEv && !emptyEv) { c.empty = false; c.resolved = "color"; colorResolved++; continue; }
+        if (emptyEv && !pillEv) { c.empty = true; c.resolved = "color"; colorResolved++; continue; }
+      }
+      c.sharp = cellSharpness(gray, c.cx, c.cy, c.r);
+      unresolved.push(c);
+    }
+    const thr = largestGapThreshold(unresolved.map(c => c.sharp));
+    for (const c of unresolved) c.empty = thr !== null && c.sharp > thr;
     for (const c of cells) {
-      if (c.recovered) { c.empty = true; continue; }
-      if (c.unknown) { c.empty = false; continue; } // counted, never classified
-      c.empty = thr !== null && c.sharp > thr;
+      if (c.recovered) c.empty = true;
+      else if (c.unknown) c.empty = false; // counted, never classified
     }
     const unknown = detected.filter(c => c.unknown).length;
-    if (thr === null && !recovered.length) {
+    if (thr === null && !recovered.length && !colorResolved) {
       /* no evidence either way — report the count honestly, say nothing more */
       for (const c of cells) c.empty = false;
       return { total: cells.length, full: null, empty: null, unknown, cells, estimated: true };
@@ -436,13 +526,19 @@ function analyze(imageData) {
     }
     /* rectify-THEN-count: when the sheet/label quad was found, measure in the
        flattened space — angled circles stop being ellipses, spacing is true.
-       The overlay then shows the rectified view (no quad outline needed). */
-    const base = label || src;
+       If the tight crop defeats the detector (kernel scale assumptions shift
+       when the sheet fills the frame), fall back to the raw image — and keep
+       the overlay in the SAME space the cells were found in. */
+    let base = label || src;
     out.pills = countPills(base);
-    out.dbg = countPills._dbg || null;
     out.rectifiedCount = !!label && !!out.pills;
+    if (!out.pills && label) {
+      base = src;
+      out.pills = countPills(src);
+    }
+    out.dbg = countPills._dbg || null;
     if (out.pills) out.colorName = pillColorName(base, out.pills.cells);
-    out.overlayImage = drawOverlay(base, label ? null : quad, out.pills);
+    out.overlayImage = drawOverlay(base, base === src ? quad : null, out.pills);
     if (out.pills) out.pills.cells = out.pills.cells.map(c => ({ cx: c.cx, cy: c.cy, r: c.r, empty: !!c.empty, recovered: !!c.recovered, unknown: !!c.unknown }));
   } finally {
     gray.delete(); src.delete(); if (label) label.delete();
