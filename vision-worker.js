@@ -368,12 +368,28 @@ function countPills(srcRgba) {
     const dark = detectCellsByContour(gray, true, 15);
     const dTrace = detectCellsByContour._trace;
     const hough = detectCellsByHough(gray);
+    for (const c of dark) c.srcDark = true; // a dark-pass cell is a hole/torn-foil candidate
     const passes = [
       { k: "bright", cells: bright },
       { k: "dark", cells: dark },
       { k: "hough", cells: hough },
     ];
     const candidates = passes.map(p => gateUniform(p.cells)).filter(Boolean);
+    /* mixed sheets show intact pills to the BRIGHT pass and torn cells to the
+       DARK pass — winner-take-all caps the count at one family. When both
+       families survive the gate with agreeing sizes, their deduped union is
+       usually the true cell set. */
+    const gb = gateUniform(bright), gd = gateUniform(dark);
+    if (gb && gd) {
+      const medR = (f) => { const rs = f.map(c => c.r).sort((a, b) => a - b); return rs[Math.floor(rs.length / 2)]; };
+      const rb = medR(gb), rd = medR(gd);
+      if (Math.max(rb, rd) / Math.min(rb, rd) < 1.6) {
+        const union = [...gb];
+        for (const c of gd) if (!union.some(o => Math.hypot(o.cx - c.cx, o.cy - c.cy) < (o.r + c.r) * 0.6)) union.push(c);
+        const gu = gateUniform(union);
+        if (gu && gu.length > Math.max(gb.length, gd.length)) candidates.push(gu);
+      }
+    }
     countPills._dbg = { bright: bright.length, dark: dark.length, hough: hough.length, bTrace, dTrace,
       art: detectCellsByContour._art || null };
     if (!candidates.length) {
@@ -422,7 +438,12 @@ function countPills(srcRgba) {
       unresolved.push(c);
     }
     const thr = largestGapThreshold(unresolved.map(c => c.sharp));
-    for (const c of unresolved) c.empty = thr !== null && c.sharp > thr;
+    for (const c of unresolved) {
+      /* which detector found the cell is itself evidence: a cell only the
+         DARK pass saw is a hole/torn-foil candidate — use it as the prior
+         when color said nothing and the texture split is inconclusive */
+      c.empty = thr !== null ? c.sharp > thr : !!c.srcDark;
+    }
     for (const c of cells) {
       if (c.recovered) c.empty = true;
       else if (c.unknown) c.empty = false; // counted, never classified
