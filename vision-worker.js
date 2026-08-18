@@ -467,6 +467,73 @@ function bumpGridOK(fam) {
   return false;
 }
 
+/* Lattice completion — the supreme-court rank-1 fix. A half-used sheet or a
+   partially-detected one leaves HOLES in the lattice: a missing column shows
+   up as a double-width gap between detected columns. Old logic gated on raw
+   occupancy and rejected exactly the sheets that most need counting.
+   Here each axis is repaired first: a gap of ~k times the base pitch implies
+   k-1 hidden grid lines (accepted only when the residual error is under 15%,
+   far stricter than the old 30% CV — strict spacing is what keeps printed
+   text out now that occupancy is allowed down to 0.45). Implied positions are
+   returned as recovered cells for PIXEL-EVIDENCE classification, and all of
+   it happens rotation-aware so tilted sheets keep their lattice. */
+function latticeComplete(cells, gray) {
+  if (cells.length < 4) return { ok: false, implied: [] };
+  const ang = familyAngle(cells);
+  const cos = Math.cos(-ang), sin = Math.sin(-ang);
+  const rot = cells.map(c => ({ x: c.cx * cos - c.cy * sin, y: c.cx * sin + c.cy * cos }));
+  const tol = cells.reduce((s, c) => s + c.r, 0) / cells.length;
+  const cluster = (vals) => {
+    const centers = [];
+    for (const v of [...vals].sort((a, b) => a - b)) {
+      const hit = centers.find(c => Math.abs(c.mean - v) < tol);
+      if (hit) { hit.sum += v; hit.n++; hit.mean = hit.sum / hit.n; }
+      else centers.push({ mean: v, sum: v, n: 1 });
+    }
+    return centers.map(c => c.mean).sort((a, b) => a - b);
+  };
+  const repair = (centers) => {
+    if (centers.length < 2) return { centers, ok: false };
+    const gaps = [];
+    for (let i = 1; i < centers.length; i++) gaps.push(centers[i] - centers[i - 1]);
+    /* base pitch = MEDIAN gap — one noisy tight pair must not poison the
+       axis the way a min-gap estimate does */
+    const sortedGaps = [...gaps].sort((a, b) => a - b);
+    const base = sortedGaps[Math.floor(sortedGaps.length / 2)];
+    /* a lattice pitch smaller than ~a cell diameter is physically impossible */
+    if (base < tol * 1.6) return { centers, ok: false };
+    const out = [centers[0]];
+    let ok = true;
+    for (let i = 1; i < centers.length; i++) {
+      const g = centers[i] - centers[i - 1];
+      const k = Math.min(2, Math.max(1, Math.round(g / base)));
+      if (Math.abs(g / k - base) / base > 0.15) ok = false;
+      for (let s = 1; s < k; s++) out.push(centers[i - 1] + (g * s) / k);
+      out.push(centers[i]);
+    }
+    return { centers: out.sort((a, b) => a - b), ok };
+  };
+  const rowsR = repair(cluster(rot.map(p => p.y)));
+  const colsR = repair(cluster(rot.map(p => p.x)));
+  const rows = rowsR.centers, cols = colsR.centers;
+  const total = rows.length * cols.length;
+  const occupancy = cells.length / Math.max(1, total);
+  const ok = rowsR.ok && colsR.ok && rows.length >= 2 && cols.length >= 2 && occupancy >= 0.6 && total <= 30;
+  if (!ok) return { ok: false, implied: [], rows: rows.length, cols: cols.length, occupancy };
+  /* implied = grid positions with no detected cell — rotated back to image space */
+  const icos = Math.cos(ang), isin = Math.sin(ang);
+  const implied = [];
+  for (const ry of rows) for (const cx of cols) {
+    if (rot.some(p => Math.hypot(p.x - cx, p.y - ry) < tol * 1.2)) continue;
+    const ox = cx * icos - ry * isin, oy = cx * isin + ry * icos;
+    if (ox < tol || oy < tol || ox > gray.cols - tol || oy > gray.rows - tol) continue;
+    implied.push({ cx: ox, cy: oy, r: tol, major: tol * 2, minor: tol * 2, angle: 0,
+                   area: Math.PI * tol * tol, recovered: true });
+  }
+  return { ok: true, implied: implied.length <= cells.length ? implied : [],
+           rows: rows.length, cols: cols.length, occupancy };
+}
+
 /* Blister invariant: cells sit on a grid. Recover cells whose pill was fully
    torn out (no contour) — CONSERVATIVELY: only positions whose row AND column
    both already exist, and every recovered cell is marked, never "intact". */
@@ -546,7 +613,22 @@ function countPills(srcRgba) {
        structure before it may claim to be a blister pack (bump-pass families
        get the blur-earned variant — see bumpGridOK) */
     const isBumpFam = (f) => f.length > 0 && f.every(c => c.src === "bump");
+    /* PRIMARY gate: the proven v3.2 grid gate — the calibrated path that holds
+       the sacred results (exact capsule sheet, zero box false-positives) */
     let viable = candidates.filter(f => isBumpFam(f) ? bumpGridOK(f) : gridOK(f));
+    let rescuedByLattice = false;
+    if (!viable.length) {
+      /* RESCUE lane (rank-1 lattice completion): a partially-detected or
+         half-used sheet leaves holes that the primary gate punishes. Repair
+         the lattice (pitch-multiple gaps) and re-judge on the implied grid.
+         Runs ONLY when the primary gate found nothing, so it can extend
+         coverage but never disturb a result the proven gate would produce. */
+      for (const f of candidates) {
+        if (isBumpFam(f)) continue;
+        const L = latticeComplete(f, gray);
+        if (L.ok) { f._lattice = L; viable.push(f); rescuedByLattice = true; }
+      }
+    }
     if (!viable.length) {
       /* tight-crop retry: in a rectified sheet crop the pills are LARGE
          relative to the frame, so the standard top-hat element is too small
@@ -563,8 +645,9 @@ function countPills(srcRgba) {
     if (!viable.length) return null;
     viable.sort((a, b) => b.length - a.length);
     let cells = viable[0];
-    /* recover fully torn-out cells from the grid pattern */
-    const recovered = gridRecover(cells, gray);
+    /* recovery: lattice-rescued families use their pitch-repaired implied
+       positions; primary-gate families keep the proven legacy recover */
+    const recovered = (cells._lattice && cells._lattice.implied) ? cells._lattice.implied : gridRecover(cells, gray);
     cells = cells.concat(recovered);
     if (cells.length > 30) return null;
     /* Classification, three tiers of evidence:
