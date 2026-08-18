@@ -30,6 +30,9 @@ const pending = []; // {id, imageData} records — NOT closures, so buffers stay
     } else if (Date.now() - t0 > 30000) {
       clearInterval(iv);
       failed = true;
+      /* tell the page explicitly — otherwise every future scan waits the full
+         ready-timeout against a worker that can never become ready */
+      postMessage({ type: "init-failed" });
       for (const p of pending.splice(0)) postMessage({ type: "result", id: p.id, error: "opencv failed to initialize" });
     }
   }, 100);

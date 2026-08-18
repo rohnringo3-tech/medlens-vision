@@ -2,10 +2,14 @@
 // stalled wifi falls back to cache fast), cache-first for immutable Google Fonts.
 // opencv.js (16 MB wasm) is cached at install so the vision layer works offline;
 // allSettled means a slow first install still succeeds without it.
-const CACHE = "medlens-vision-v5";
+const CACHE = "medlens-vision-v6";
+/* The 14MB engine lives in its OWN long-lived cache: bumping the app cache on
+   a deploy must never make users on metered connections re-download opencv.js.
+   Only bump CV_CACHE when the engine binary itself changes. */
+const CV_CACHE = "medlens-cv-1";
 /* opencv.js is NOT in SHELL: the idle warm-up fetches it through the SW route
    below, which caches it on first success — one download total instead of the
-   install and the worker racing two parallel 11MB downloads on 3G. */
+   install and the worker racing two parallel 14MB downloads on 3G. */
 const SHELL = ["./", "./index.html", "./manifest.webmanifest", "./icon.svg", "./vision-worker.js",
   "./icon-192.png", "./icon-512.png", "./icon-512-maskable.png", "./apple-touch-icon.png"];
 const FONT_HOSTS = ["https://fonts.googleapis.com", "https://fonts.gstatic.com"];
@@ -21,7 +25,7 @@ self.addEventListener("install", (e) => {
 self.addEventListener("activate", (e) => {
   e.waitUntil(
     caches.keys()
-      .then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
+      .then(keys => Promise.all(keys.filter(k => k !== CACHE && k !== CV_CACHE).map(k => caches.delete(k))))
       .then(() => self.clients.claim())
   );
 });
@@ -62,7 +66,7 @@ self.addEventListener("fetch", (e) => {
       caches.match(e.request).then(hit => hit || fetch(e.request).then(resp => {
         if (resp.ok) {
           const copy = resp.clone();
-          e.waitUntil(caches.open(CACHE).then(c => c.put(e.request, copy)));
+          e.waitUntil(caches.open(CV_CACHE).then(c => c.put(e.request, copy)));
         }
         return resp;
       }))

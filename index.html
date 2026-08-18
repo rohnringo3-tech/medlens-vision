@@ -211,7 +211,7 @@
   .scanzone .zl2 { color: var(--muted); font-size: 13.5px; margin-top: 5px; }
   .btn-row { display: flex; gap: 10px; margin-top: 20px; justify-content: center; flex-wrap: wrap; }
   .btn {
-    border: 0; cursor: pointer; border-radius: 999px; padding: 13px 26px;
+    border: 1px solid transparent; cursor: pointer; border-radius: 999px; padding: 13px 26px;
     font-size: 15px; font-weight: 600; font-family: var(--head);
     transition: filter .15s, transform .12s, box-shadow .15s, border-color .15s, color .15s;
   }
@@ -672,7 +672,7 @@
     <h2>Settings</h2>
 
     <label class="f" for="keyInput">Gemini API key</label>
-    <p style="margin-top:4px">Enables live camera scanning. Get a free key at <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com</a> — sign in with Google, tap "Create API key", and paste it here. Stored only on this device; without it, MedLens runs in demo mode.</p>
+    <p style="margin-top:4px" id="keyExplain">Enables live camera scanning. Get a free key at <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com</a> — sign in with Google, tap "Create API key", and paste it here. Stored only on this device; without it, MedLens runs in demo mode.</p>
     <input type="password" id="keyInput" placeholder="Gemini API key" autocomplete="off">
     <div class="status" id="keyStatus"></div>
 
@@ -755,6 +755,7 @@ function refreshMedCount() {
 }
 function toast(msg) {
   const t = $("toast");
+  if (!t) return; // selftest/eval pages replace the body — reminder timers must not crash
   t.textContent = msg;
   t.classList.add("show");
   clearTimeout(toast._t);
@@ -927,9 +928,9 @@ const IX_PAIRS = [
   { a: ["fluoxetine", "sertraline", "paroxetine", "citalopram", "escitalopram", "fluvoxamine", "venlafaxine", "duloxetine"], b: ["tramadol", "sumatriptan", "rizatriptan"],
     severity: "caution",
     note: "Both raise serotonin. Watch for agitation, sweating, racing heart, tremor — and seek care fast if they appear." },
-  { a: ["fluoxetine", "sertraline", "paroxetine", "citalopram", "escitalopram", "fluvoxamine"], b: ["ibuprofen", "naproxen", "diclofenac", "acetylsalicylic", "aspirin", "warfarin"],
+  { a: ["fluoxetine", "sertraline", "paroxetine", "citalopram", "escitalopram", "fluvoxamine", "venlafaxine", "duloxetine"], b: ["ibuprofen", "naproxen", "diclofenac", "acetylsalicylic", "aspirin", "warfarin"],
     severity: "caution",
-    note: "SSRIs plus blood thinners or NSAID painkillers raise stomach-bleeding risk. Ask about stomach protection if used together regularly." },
+    note: "These antidepressants plus blood thinners or NSAID painkillers raise stomach-bleeding risk. Ask about stomach protection if used together regularly." },
   /* --- lithium: narrow safety window --- */
   { a: ["lithium"], b: ["ibuprofen", "naproxen", "diclofenac"],
     severity: "avoid",
@@ -950,7 +951,7 @@ const IX_PAIRS = [
     note: "Gemfibrozil with a statin sharply raises muscle-damage risk. Doctors pick safer combinations." },
   { a: ["simvastatin"], b: ["amiodarone", "verapamil", "diltiazem"],
     severity: "caution",
-    note: "These heart medicines raise simvastatin levels — doses above 20 mg become risky for muscles. Mention it to your doctor." },
+    note: "These heart medicines raise simvastatin levels and with them the risk of muscle damage — doctors usually limit the simvastatin dose when combining. Mention it to your doctor." },
   /* --- digoxin --- */
   { a: ["digoxin"], b: ["amiodarone", "verapamil", "clarithromycin", "spironolactone"],
     severity: "caution",
@@ -971,9 +972,12 @@ const IX_PAIRS = [
   { a: ["ciprofloxacin"], b: ["theophylline", "tizanidine"],
     severity: "avoid",
     note: "Ciprofloxacin blocks the breakdown of these drugs — levels can become toxic (seizures, dangerous sedation). Doctors choose a different antibiotic." },
-  { a: ["clarithromycin", "erythromycin"], b: ["theophylline", "carbamazepine", "colchicine"],
+  { a: ["clarithromycin", "erythromycin"], b: ["theophylline", "carbamazepine"],
     severity: "caution",
-    note: "These antibiotics raise the levels of this medicine; toxicity can follow. Tell the prescriber what you already take — colchicine especially can become dangerous." },
+    note: "These antibiotics raise the levels of this medicine; toxicity can follow. Tell the prescriber what you already take." },
+  { a: ["clarithromycin", "erythromycin"], b: ["colchicine"],
+    severity: "avoid",
+    note: "These antibiotics block colchicine's breakdown — colchicine toxicity can be fatal. This combination is avoided, especially with kidney problems. Tell the prescriber immediately." },
   /* --- gout/immune --- */
   { a: ["allopurinol"], b: ["azathioprine", "mercaptopurine"],
     severity: "avoid",
@@ -1028,10 +1032,10 @@ const SYN_PAIRS = [
   ["oestradiol", "estradiol"], ["aciclovir", "acyclovir"],
   ["hyoscine", "scopolamine"], ["glyceryl trinitrate", "nitroglycerin"],
   ["chlorphenamine", "chlorpheniramine"], ["beclometasone", "beclomethasone"],
-  ["indometacin", "indomethacin"], ["dimeticone", "simethicone"],
+  ["indometacin", "indomethacin"],
   ["cotrimoxazole", "co-trimoxazole"], ["dextropropoxyphene", "propoxyphene"],
   ["acetylsalicylic acid", "aspirin"], ["colecalciferol", "cholecalciferol"],
-  ["dosulepin", "dothiepin"], ["moclobemide", "moclobemide"],
+  ["dosulepin", "dothiepin"],
 ];
 function expandSynonyms(s) {
   let out = s;
@@ -1433,6 +1437,15 @@ function getVisionWorker() {
   visionWorker = new Worker("vision-worker.js");
   visionWorker.onmessage = (e) => {
     if (e.data.type === "ready") { visionIsReady = true; if (visionReadyResolve) visionReadyResolve(true); return; }
+    if (e.data.type === "init-failed") {
+      /* wasm could not initialize — fail fast now and let the NEXT scan retry
+         with a fresh worker instead of stalling every scan on a dead one */
+      visionIsReady = false;
+      if (visionReadyResolve) visionReadyResolve(false);
+      try { visionWorker.terminate(); } catch {}
+      visionWorker = null;
+      return;
+    }
     if (e.data.type !== "result") return;
     const call = visionCalls.get(e.data.id);
     if (!call) return;
@@ -2054,9 +2067,16 @@ $("btnSaveKey").addEventListener("click", () => {
 function openSettings() {
   $("keyInput").value = getKey();
   $("langSelect").value = getLang();
-  $("keyStatus").textContent = getKey() ? "A key is saved on this device." : "";
+  /* on the deployed site the proxy already provides scanning — the settings
+     copy must not tell visitors they need a key when they don't */
+  if (PROXY_URL && !getKey()) {
+    $("keyExplain").textContent = "Scanning already works here with no key — the site includes one. Add your own free key from aistudio.google.com only if you want scans billed to your own quota.";
+    $("keyStatus").textContent = "No key needed on this site — scanning is already live.";
+  } else {
+    $("keyStatus").textContent = getKey() ? "A key is saved on this device." : "";
+  }
   $("keyStatus").className = "status ok";
-  $("demoEscape").classList.toggle("hidden", !!getKey());
+  $("demoEscape").classList.toggle("hidden", canScanLive());
   $("settingsVeil").classList.add("open");
 }
 $("btnModalDemo").addEventListener("click", () => { closeSettings(); show("viewScan"); runDemo(); });
