@@ -171,6 +171,35 @@ function cellSharpness(gray, cx, cy, r) {
   } finally { roi.delete(); lap.delete(); mean.delete(); std.delete(); }
 }
 
+/* Pixel evidence at a grid position the detector never saw: mean gray of the
+   inner disc (0.55r, specular pixels excluded) vs the MEDIAN of the
+   1.15r-1.4r ring just outside the cell. Median, not mean, for the ring:
+   in a tight grid the ring overlaps neighbouring pills (same reason
+   sheetColorRef uses medians), and a mean would drag the "sheet level"
+   toward the neighbours. A torn-out cell is a dark hole (disc well below
+   ring); a disc at or ABOVE the ring is a pill face the detector missed —
+   which must never be reported as a taken dose. */
+function cellRingEvidence(gray, cx, cy, r) {
+  const W = gray.cols, H = gray.rows, d = gray.data;
+  const rIn = Math.max(2, r * 0.55), r0 = r * 1.15, r1 = r * 1.4;
+  const x0 = Math.max(0, Math.floor(cx - r1)), x1 = Math.min(W - 1, Math.ceil(cx + r1));
+  const y0 = Math.max(0, Math.floor(cy - r1)), y1 = Math.min(H - 1, Math.ceil(cy + r1));
+  let dSum = 0, dN = 0;
+  const ringVals = [];
+  for (let y = y0; y <= y1; y += 2) {
+    for (let x = x0; x <= x1; x += 2) {
+      const v = d[y * W + x];
+      if (v >= 245) continue; // specular highlight — evidence of nothing
+      const dist = Math.hypot(x - cx, y - cy);
+      if (dist <= rIn) { dSum += v; dN++; }
+      else if (dist >= r0 && dist <= r1) ringVals.push(v);
+    }
+  }
+  if (dN < 6 || ringVals.length < 6) return null;
+  ringVals.sort((a, b) => a - b);
+  return { disc: dSum / dN, ring: ringVals[Math.floor(ringVals.length / 2)] };
+}
+
 function largestGapThreshold(values) {
   if (values.length < 4) return null;
   const sorted = [...values].sort((a, b) => a - b);
@@ -186,8 +215,8 @@ function largestGapThreshold(values) {
 }
 
 /* ---- detector v2: shape-agnostic contour pass (round, capsule, oblong) ---- */
-function detectCellsByContour(gray, inverted, bias, kernelDiv = 3) {
-  const bin = new cv.Mat(), kernel = cv.getStructuringElement(cv.MORPH_ELLIPSE, new cv.Size(5, 5));
+function detectCellsByContour(gray, inverted, bias, kernelDiv = 3, openSize = 5) {
+  const bin = new cv.Mat(), kernel = cv.getStructuringElement(cv.MORPH_ELLIPSE, new cv.Size(openSize, openSize));
   const diff = new cv.Mat();
   const contours = new cv.MatVector(), hier = new cv.Mat();
   const cells = [];
@@ -246,6 +275,40 @@ function detectCellsByContour(gray, inverted, bias, kernelDiv = 3) {
     }
     detectCellsByContour._trace = { n: contours.size(), big, trace };
   } finally { bin.delete(); kernel.delete(); diff.delete(); contours.delete(); hier.delete(); }
+  return cells;
+}
+
+/* ---- detector v4: foil-back BUMP pass ---- */
+/* The printed back of a blister sheet defeats the plain top-hat: ink strokes
+   are the same scale as the pill bumps, so text fragments join the family and
+   the gate throws the whole pass out. But the bumps are LOW-frequency domes
+   while print is HIGH-frequency strokes — a Gaussian blur at ~minDim/16 erases
+   the ink and leaves the domes, and the very same top-hat machinery then sees
+   a clean sheet. Low bias (8, not 15): blurring costs the bumps contrast. */
+function detectCellsByBumps(gray, bias = 8, blurDiv = 20, kernelDiv = 3, openDiv = 18) {
+  const blurred = new cv.Mat();
+  let cells;
+  try {
+    const minDim = Math.min(gray.rows, gray.cols);
+    let k = Math.max(9, Math.round(minDim / blurDiv)); if (k % 2 === 0) k++;
+    cv.GaussianBlur(gray, blurred, new cv.Size(k, k), 0);
+    /* blurred domes touch at their skirts and weld neighbouring bumps into
+       one blob — an aggressive OPEN (kernel scaled to the blur, not the fixed
+       5px) erodes the bridges so each dome keeps its own centre */
+    let o = openDiv ? Math.round(minDim / openDiv) : 5; if (o % 2 === 0) o++;
+    cells = detectCellsByContour(blurred, false, bias, kernelDiv, Math.max(5, o));
+  } finally { blurred.delete(); }
+  /* the blur also smears frame-edge gradients into fat blobs — a real cell
+     never straddles the border, so border-touching blobs are noise */
+  cells = cells.filter(c =>
+    c.cx - c.r > 2 && c.cy - c.r > 2 && c.cx + c.r < gray.cols - 2 && c.cy + c.r < gray.rows - 2);
+  /* isolated far-off blobs (background shadows) wreck the lattice stats:
+     drop cells whose nearest neighbour is far beyond the family's pitch */
+  if (cells.length >= 4) {
+    const nn = cells.map(c => Math.min(...cells.filter(o => o !== c).map(o => Math.hypot(o.cx - c.cx, o.cy - c.cy))));
+    const med = [...nn].sort((a, b) => a - b)[Math.floor(nn.length / 2)];
+    cells = cells.filter((c, i) => nn[i] <= med * 1.8);
+  }
   return cells;
 }
 
@@ -354,8 +417,8 @@ function familyAngle(cells) {
    families (they defeated the size gate on 5 of 7 real box photos), but they
    sit on TEXT LINES: their centres never align into a regular 2-D lattice.
    Real blister cells do — rows AND columns, evenly spaced, densely occupied. */
-function gridScore(cells) {
-  const ang = familyAngle(cells);
+function gridScore(cells, angOverride) {
+  const ang = angOverride !== undefined ? angOverride : familyAngle(cells);
   const cos = Math.cos(-ang), sin = Math.sin(-ang);
   const pts = cells.map(c => ({ x: c.cx * cos - c.cy * sin, y: c.cx * sin + c.cy * cos }));
   const tol = cells.reduce((s, c) => s + c.r, 0) / cells.length;
@@ -386,6 +449,22 @@ function gridScore(cells) {
 function gridOK(fam) {
   const g = gridScore(fam);
   return g.rows >= 2 && g.cols >= 2 && g.occupancy >= 0.7 && g.spacingCV <= 0.3;
+}
+
+/* Lattice check for the BUMP pass only. Blur has already erased printed text
+   (the reason gridOK exists), so occupancy may relax a little — foil-back
+   bumps hide in shadow and behind print, and demanding 70% of an 8-cell
+   lattice throws away honest 5-cell finds. In exchange the spacing bar is
+   RAISED (CV <= 0.2): a sparse family may only claim a grid when its members
+   are strictly evenly spaced. familyAngle mis-folds on sparse families whose
+   nearest neighbours sit diagonally, so the unrotated frame is tried too. */
+function bumpGridOK(fam) {
+  if (gridOK(fam)) return true;
+  for (const ang of [undefined, 0]) {
+    const g = gridScore(fam, ang);
+    if (g.rows >= 2 && g.cols >= 2 && g.occupancy >= 0.6 && g.spacingCV <= 0.2) return true;
+  }
+  return false;
 }
 
 /* Blister invariant: cells sit on a grid. Recover cells whose pill was fully
@@ -431,39 +510,53 @@ function countPills(srcRgba) {
     const dark = detectCellsByContour(gray, true, 15);
     const dTrace = detectCellsByContour._trace;
     const hough = detectCellsByHough(gray);
+    const bump = detectCellsByBumps(gray);
     for (const c of dark) c.srcDark = true; // a dark-pass cell is a hole/torn-foil candidate
+    for (const c of bump) c.src = "bump";   // a blurred-dome cell — foil-back bump candidate
     const passes = [
       { k: "bright", cells: bright },
       { k: "dark", cells: dark },
       { k: "hough", cells: hough },
+      { k: "bump", cells: bump },
     ];
     const candidates = passes.map(p => gateUniform(p.cells)).filter(Boolean);
-    /* mixed sheets show intact pills to the BRIGHT pass and torn cells to the
-       DARK pass — winner-take-all caps the count at one family. When both
-       families survive the gate with agreeing sizes, their deduped union is
-       usually the true cell set. */
-    const gb = gateUniform(bright), gd = gateUniform(dark);
-    if (gb && gd) {
-      const medR = (f) => { const rs = f.map(c => c.r).sort((a, b) => a - b); return rs[Math.floor(rs.length / 2)]; };
-      const rb = medR(gb), rd = medR(gd);
-      if (Math.max(rb, rd) / Math.min(rb, rd) < 1.6) {
-        const union = [...gb];
-        for (const c of gd) if (!union.some(o => Math.hypot(o.cx - c.cx, o.cy - c.cy) < (o.r + c.r) * 0.6)) union.push(c);
-        const gu = gateUniform(union);
-        if (gu && gu.length > Math.max(gb.length, gd.length)) candidates.push(gu);
-      }
-    }
-    countPills._dbg = { bright: bright.length, dark: dark.length, hough: hough.length, bTrace, dTrace,
+    /* mixed sheets show intact pills to the BRIGHT pass (or the BUMP pass on a
+       printed foil back) and torn cells to the DARK pass — winner-take-all
+       caps the count at one family. When two families survive the gate with
+       agreeing sizes, their deduped union is usually the true cell set. */
+    const gb = gateUniform(bright), gd = gateUniform(dark), gm = gateUniform(bump);
+    const medR = (f) => { const rs = f.map(c => c.r).sort((a, b) => a - b); return rs[Math.floor(rs.length / 2)]; };
+    const tryUnion = (fa, fb) => {
+      if (!fa || !fb) return;
+      const ra = medR(fa), rb = medR(fb);
+      if (Math.max(ra, rb) / Math.min(ra, rb) >= 1.6) return;
+      const union = [...fa];
+      for (const c of fb) if (!union.some(o => Math.hypot(o.cx - c.cx, o.cy - c.cy) < (o.r + c.r) * 0.6)) union.push(c);
+      const gu = gateUniform(union);
+      if (gu && gu.length > Math.max(fa.length, fb.length)) candidates.push(gu);
+    };
+    tryUnion(gb, gd);
+    tryUnion(gm, gd);
+    tryUnion(gm, gb);
+    countPills._dbg = { bright: bright.length, dark: dark.length, hough: hough.length, bump: bump.length,
+      fams: { gb: gb ? gb.length : 0, gd: gd ? gd.length : 0, gm: gm ? gm.length : 0 },
+      cand: candidates.map(f => f.length), bTrace, dTrace,
       art: detectCellsByContour._art || null };
     /* letters-are-not-pills: every candidate family must show real 2-D grid
-       structure before it may claim to be a blister pack */
-    let viable = candidates.filter(gridOK);
+       structure before it may claim to be a blister pack (bump-pass families
+       get the blur-earned variant — see bumpGridOK) */
+    const isBumpFam = (f) => f.length > 0 && f.every(c => c.src === "bump");
+    let viable = candidates.filter(f => isBumpFam(f) ? bumpGridOK(f) : gridOK(f));
     if (!viable.length) {
       /* tight-crop retry: in a rectified sheet crop the pills are LARGE
          relative to the frame, so the standard top-hat element is too small
          and hollows them out — try again with a much larger element */
       const bigBright = gateUniform(detectCellsByContour(gray, false, 15, 1.6));
-      const bigDark = gateUniform(detectCellsByContour(gray, true, 15, 1.6));
+      const bigDarkRaw = detectCellsByContour(gray, true, 15, 1.6);
+      /* same hole/torn-foil prior as the primary dark pass — the tag was
+         silently lost on this retry path, inverting the srcDark fallback */
+      for (const c of bigDarkRaw) c.srcDark = true;
+      const bigDark = gateUniform(bigDarkRaw);
       if (bigBright && gridOK(bigBright)) viable.push(bigBright);
       if (bigDark && gridOK(bigDark)) viable.push(bigDark);
     }
@@ -479,43 +572,94 @@ function countPills(srcRgba) {
           than the sheet; an empty pocket matches the sheet, a torn hole is
           darker. Texture alone lied on glossy colored pills (real-photo eval:
           shiny pink tablets read as "torn foil"), color does not.
-       2. TEXTURE largest-gap split for cells color could not resolve.
-       3. Glary cells ABSTAIN, recovered grid cells are empty by definition. */
+       2. TEXTURE for cells color could not resolve — polarity ANCHORED by the
+          color-proven cells when any exist (texture polarity inverts between
+          glossy pills and smooth foil, so it must be learned, not assumed);
+          largest-gap split with the srcDark prior only when no anchors exist.
+       3. Glary cells ABSTAIN. Recovered grid cells need PIXEL evidence:
+          dark hole = empty, anything else = unknown, never "taken". */
     const detected = cells.filter(c => !c.recovered);
     for (const c of detected) {
       c.spec = cellSpecularFrac(gray, c.cx, c.cy, c.r);
       c.unknown = c.spec > 0.3;
     }
     const ref = sheetColorRef(srcRgba, detected);
-    const unresolved = [];
+    const unresolved = [], anchorsFull = [], anchorsEmpty = [];
     let colorResolved = 0;
     for (const c of detected) {
       if (c.unknown) continue;
+      c.sharp = cellSharpness(gray, c.cx, c.cy, c.r);
       const cs = ref ? cellColorStats(srcRgba, c.cx, c.cy, c.r) : null;
       if (cs && ref) {
         const dSat = cs.sat - ref.sat, dV = cs.v - ref.v;
         const colorDist = Math.hypot(cs.R - ref.R, cs.G - ref.G, cs.B - ref.B);
         const pillEv = dSat > 0.12 || dV > 18;
         const emptyEv = dV < -30 || (colorDist < 18 && dSat < 0.08);
-        if (pillEv && !emptyEv) { c.empty = false; c.resolved = "color"; colorResolved++; continue; }
-        if (emptyEv && !pillEv) { c.empty = true; c.resolved = "color"; colorResolved++; continue; }
+        if (pillEv && !emptyEv) { c.empty = false; c.resolved = "color"; colorResolved++; anchorsFull.push(c.sharp); continue; }
+        if (emptyEv && !pillEv) { c.empty = true; c.resolved = "color"; colorResolved++; anchorsEmpty.push(c.sharp); continue; }
       }
-      c.sharp = cellSharpness(gray, c.cx, c.cy, c.r);
       unresolved.push(c);
     }
     const thr = largestGapThreshold(unresolved.map(c => c.sharp));
-    for (const c of unresolved) {
-      /* which detector found the cell is itself evidence: a cell only the
-         DARK pass saw is a hole/torn-foil candidate — use it as the prior
-         when color said nothing and the texture split is inconclusive */
-      c.empty = thr !== null ? c.sharp > thr : !!c.srcDark;
+    const meanOf = (arr) => arr.reduce((s, v) => s + v, 0) / arr.length;
+    let anchored = false;
+    if (anchorsFull.length && anchorsEmpty.length) {
+      /* color proved examples of BOTH classes on this very sheet — but the
+         anchors may only teach texture polarity when texture actually
+         SEPARATES the classes: non-overlapping sharpness ranges with a real
+         gap between them. Overlapping anchors mean texture says nothing here
+         (an empty pocket can be as sharp as a pill), so they must not vote. */
+      const loF = Math.min(...anchorsFull), hiF = Math.max(...anchorsFull);
+      const loE = Math.min(...anchorsEmpty), hiE = Math.max(...anchorsEmpty);
+      const gap = loE > hiF ? loE - hiF : loF > hiE ? loF - hiE : 0;
+      const span = Math.max(hiF, hiE) - Math.min(loF, loE);
+      if (gap > 0 && span > 0 && gap >= span * 0.25) {
+        const mF = meanOf(anchorsFull), mE = meanOf(anchorsEmpty);
+        for (const c of unresolved) c.empty = Math.abs(c.sharp - mE) < Math.abs(c.sharp - mF);
+        anchored = true;
+      }
+    } else if (thr !== null && (anchorsFull.length || anchorsEmpty.length)) {
+      /* one-sided anchors decide which side of the texture gap is "empty" */
+      const anchorAbove = meanOf(anchorsFull.length ? anchorsFull : anchorsEmpty) > thr;
+      const emptyAbove = anchorsFull.length ? !anchorAbove : anchorAbove;
+      for (const c of unresolved) c.empty = emptyAbove ? c.sharp > thr : c.sharp < thr;
+      anchored = true;
+    }
+    if (!anchored) {
+      for (const c of unresolved) {
+        /* which detector found the cell is itself evidence: a cell only the
+           DARK pass saw is a hole/torn-foil candidate — use it as the prior
+           when color said nothing and the texture split is inconclusive */
+        c.empty = thr !== null ? c.sharp > thr : !!c.srcDark;
+      }
     }
     for (const c of cells) {
-      if (c.recovered) c.empty = true;
-      else if (c.unknown) c.empty = false; // counted, never classified
+      if (c.recovered) {
+        /* a recovered position may claim "taken" ONLY with pixel evidence:
+           (a) ring test — a clearly dark inner disc vs the surrounding ring
+           is a torn hole; (b) color test — the same sheet-reference evidence
+           trusted for detected cells, except brightness alone may not vote
+           "pill" here (the white backing behind torn foil fakes it, only
+           saturation is trusted). A disc at/above the ring or a saturated
+           disc is likely a pill the detector MISSED; that and every
+           ambiguous case abstain as unknown, never "taken". */
+        const ev = cellRingEvidence(gray, c.cx, c.cy, c.r);
+        const cs = ref ? cellColorStats(srcRgba, c.cx, c.cy, c.r) : null;
+        let colorEmpty = false, colorPill = false;
+        if (cs && ref) {
+          const dSat = cs.sat - ref.sat, dV = cs.v - ref.v;
+          const colorDist = Math.hypot(cs.R - ref.R, cs.G - ref.G, cs.B - ref.B);
+          colorPill = dSat > 0.12;
+          colorEmpty = dV < -30 || (colorDist < 18 && dSat < 0.08);
+        }
+        if (ev && ev.disc <= ev.ring - 10) { c.empty = true; }
+        else if (colorEmpty && !colorPill) { c.empty = true; }
+        else { c.unknown = true; c.empty = false; if ((ev && ev.disc >= ev.ring + 14) || colorPill) c.likelyPill = true; }
+      } else if (c.unknown) c.empty = false; // counted, never classified
     }
-    const unknown = detected.filter(c => c.unknown).length;
-    if (thr === null && !recovered.length && !colorResolved) {
+    const unknown = cells.filter(c => c.unknown).length;
+    const recoveredEmpty = recovered.some(c => c.empty);
+    if (thr === null && !recoveredEmpty && !colorResolved) {
       /* no evidence either way — report the count honestly, say nothing more */
       for (const c of cells) c.empty = false;
       return { total: cells.length, full: null, empty: null, unknown, cells, estimated: true };
@@ -526,7 +670,9 @@ function countPills(srcRgba) {
 }
 
 function pillColorName(srcRgba, cells) {
-  const full = cells.filter(c => !c.empty);
+  /* name the color only from cells that are proven pills — unknown and
+     grid-recovered positions carry no pill-face evidence */
+  const full = cells.filter(c => !c.empty && !c.unknown && !c.recovered);
   if (!full.length) return null;
   let rSum = 0, gSum = 0, bSum = 0, n = 0;
   for (const c of full.slice(0, 6)) {

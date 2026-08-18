@@ -333,6 +333,9 @@
     font-size: 13.5px;
   }
   .conf-banner b { color: var(--amber-text); }
+  /* sky-blue variant: vision advice, not a warning — same surface as .chip.vis */
+  .conf-banner.vis { border-color: #c9d9fb; background: var(--blue-dim); }
+  .conf-banner.vis b { color: var(--sky-deep); }
 
   .section {
     margin-top: 14px; background: var(--white);
@@ -597,7 +600,7 @@
 
     <div class="steps">
       <div class="step"><div class="num">01</div><div><div class="t">Snap the label</div><div class="d">Box, bottle or pill sheet</div></div></div>
-      <div class="step"><div class="num">02</div><div><div class="t">Vision counts &amp; straightens</div><div class="d">OpenCV on your phone — finds the label, counts the pills, seconds, no cloud</div></div></div>
+      <div class="step"><div class="num">02</div><div><div class="t">Vision counts &amp; straightens</div><div class="d">OpenCV on your phone — finds the label, counts the pills in a few seconds, no cloud</div></div></div>
       <div class="step"><div class="num">03</div><div><div class="t">AI explains, facts checked</div><div class="d">Plain-language card, name matched in openFDA</div></div></div>
     </div>
 
@@ -1082,14 +1085,27 @@ function builtinInteractions(newMed, savedMeds) {
 }
 
 async function geminiInteractions(newMed, savedMeds, key) {
-  const prompt = `You are a careful pharmacist. A person already takes these medicines: ${savedMeds.map(m => m.name + " (" + (m.generic || "?") + ")").join("; ")}.
+  let body;
+  if (key) {
+    /* BYOK: talks to Google directly, so the full prompt is built here */
+    const prompt = `You are a careful pharmacist. A person already takes these medicines: ${savedMeds.map(m => m.name + " (" + (m.generic || "?") + ")").join("; ")}.
 They are about to take: ${newMed.name} (${newMed.generic || "?"}).
 Return ONLY JSON: {"interactions":[{"with":"name of the existing medicine","severity":"avoid|caution","note":"one plain sentence explaining the risk"}]}
 Only include REAL, well-established interactions. If there are none, return {"interactions":[]}. Write notes in ${getLang()}.`;
-  const body = {
-    contents: [{ parts: [{ text: prompt }] }],
-    generationConfig: { response_mime_type: "application/json", temperature: 0.1 }
-  };
+    body = {
+      contents: [{ parts: [{ text: prompt }] }],
+      generationConfig: { response_mime_type: "application/json", temperature: 0.1 }
+    };
+  } else {
+    /* proxy mode: minimal typed payload — the Worker owns the prompt
+       (deploy/worker.js builds the same pharmacist prompt server-side) */
+    body = {
+      mode: "interactions",
+      lang: getLang(),
+      new_med: { name: newMed.name || "", generic: newMed.generic || "" },
+      saved_meds: savedMeds.slice(0, 20).map(m => ({ name: m.name || "", generic: m.generic || "" }))
+    };
+  }
   const resp = await geminiRequest(body, 20000);
   if (!resp.ok) throw new Error("Gemini HTTP " + resp.status);
   const data = await resp.json();
@@ -1363,7 +1379,7 @@ async function scanFromDataUrl(dataUrl) {
     startStages(AI_STAGES); // vision settled (either way) — now the AI stages, truthfully
     /* the full photo ALWAYS goes to the AI; the rectified crop rides along as
        a second image — a wrong crop must never hide the real label */
-    const med = await analyzeWithGemini(dataUrl, key, visionHints(vision), vision && vision.labelDataUrl);
+    const med = await analyzeWithGemini(dataUrl, key, vision, vision && vision.labelDataUrl);
     if (gen !== scanGen) return;
     let fda = null;
     try { fda = await fetchOpenFDAForMed(med); } catch {}
@@ -1575,10 +1591,32 @@ function geminiRequest(body, timeoutMs) {
   return fetch(url, { method: "POST", headers, body: JSON.stringify(body), signal: timeoutSignal(timeoutMs) });
 }
 
-async function analyzeWithGemini(dataUrl, key, hints, cropDataUrl) {
+async function analyzeWithGemini(dataUrl, key, vision, cropDataUrl) {
   const [meta, b64] = dataUrl.split(",");
   const mime = (meta.match(/data:(.*?);/) || [])[1] || "image/jpeg";
   const lang = getLang();
+  let body;
+  if (!key) {
+    /* proxy mode: minimal typed payload — the Worker owns the prompt
+       (deploy/worker.js builds the identical scan prompt server-side and
+       rebuilds the vision hints from these structured facts) */
+    body = { mode: "scan", image_b64: b64, mime, lang };
+    if (cropDataUrl) {
+      const [cMeta, cB64] = cropDataUrl.split(",");
+      body.crop_b64 = cB64;
+      body.crop_mime = (cMeta.match(/data:(.*?);/) || [])[1] || "image/jpeg";
+    }
+    if (vision) {
+      body.vision = {
+        deskewed: !!vision.deskewed,
+        pills: vision.pills ? { total: vision.pills.total, full: vision.pills.full, empty: vision.pills.empty } : null,
+        colorName: vision.colorName || null
+      };
+    }
+    return geminiAnalyzeCall(body);
+  }
+  /* BYOK: talks to Google directly, so the full prompt is built here */
+  const hints = visionHints(vision);
   const prompt = `You are MedLens, a careful pharmacist's assistant. This photo shows a medicine package, bottle, blister sheet or label.
 ${cropDataUrl ? "Two images are attached: the full photo first, then a machine-straightened rectangular region that MAY be the label. If the second image does not show the label, ignore it and use the full photo.\n" : ""}${hints ? hints + "\n" : ""}
 Read it and return ONLY JSON with this exact shape:
@@ -1616,10 +1654,14 @@ Other rules:
     const cMime = (cMeta.match(/data:(.*?);/) || [])[1] || "image/jpeg";
     parts.push({ inline_data: { mime_type: cMime, data: cB64 } });
   }
-  const body = {
+  return geminiAnalyzeCall({
     contents: [{ parts }],
     generationConfig: { response_mime_type: "application/json", temperature: 0.2 }
-  };
+  });
+}
+
+/* shared transport + response parsing for both BYOK and proxy scan calls */
+async function geminiAnalyzeCall(body) {
   const resp = await geminiRequest(body, 30000);
   if (!resp.ok) {
     if (resp.status === 429) throw gemErr("quota");
@@ -1721,7 +1763,7 @@ function renderResult(med, fda, ix, vision) {
      the openFDA match only proves the NAME exists, not that the photo was
      read correctly. Low confidence always warns, matched or not. */
   const badge = med.visionOnly
-    ? '<span class="badge ok">MEASURED ON-DEVICE · OPENCV</span>'
+    ? '<span class="badge ok">COUNTED ON-DEVICE · OPENCV</span>'
     : matched
     ? (conf === "low"
         ? '<span class="badge ai">NAME IN OPENFDA · LOW-CONFIDENCE READ</span>'
@@ -1769,7 +1811,7 @@ function renderResult(med, fda, ix, vision) {
     : "";
   /* the live vision demo involves NO AI — its card must credit only what ran */
   const sources = med.visionOnly
-    ? `<span class="chip vis">Measured by OpenCV 5 WASM — this device</span>`
+    ? `<span class="chip vis">Counted by OpenCV 5 WASM — this device</span>`
     : fdaChip + `<span class="chip">Read by Gemini AI</span><span class="chip">Built-in interaction table</span>`;
   const sourceNote = med.visionOnly
     ? `<div class="ix-note">Every number on this card was measured by the on-device computer-vision pipeline seconds ago. No AI, no internet, nothing pre-recorded.</div>`
@@ -1787,6 +1829,12 @@ function renderResult(med, fda, ix, vision) {
   const alreadySaved = getMeds().some(m => sameMed(m, med));
 
   /* ---- the vision card: show the measurements, in plain words ---- */
+  /* spoken abstention: the engine RAN but either found no countable sheet or
+     refused to split intact from taken. Silence reads as a gap — say it, and
+     say how to get a countable photo. */
+  const visionAbstained = !!vision && (!vision.pills || vision.pills.full === null);
+  const abstainCard = visionAbstained ? `
+      <div class="conf-banner vis"><b>Could not count this sheet reliably.</b> The vision engine saw the photo but would not commit to a count. Retake flat on a plain surface, straight above, without glare — counting works best that way.</div>` : "";
   let visionSection = "";
   if (vision && (vision.deskewed || vision.pills)) {
     const pills = vision.pills;
@@ -1828,8 +1876,16 @@ function renderResult(med, fda, ix, vision) {
       <h3>What the on-device vision saw</h3>
       ${vision.overlayDataUrl ? `<img class="vis-img" src="${vision.overlayDataUrl}" alt="Your photo with ${esc(altParts.join("; "))}">` : ""}
       <div class="chips">${visChips.join("")}</div>
-      <div class="ix-note">Measured by OpenCV running on this phone in ${vision.ms} ms — no internet, no AI guessing.${pills ? " Pill counts are an estimate from the photo; check the pack." : ""}</div>
+      ${abstainCard}
+      <div class="ix-note">Counted by OpenCV on this device in ${vision.ms} ms — deterministic code, no AI in these numbers.${pills ? " Counts are an estimate from one photo; the pack is the truth." : ""}</div>
       ${refill}
+    </div>`;
+  } else if (visionAbstained) {
+    /* vision ran and returned nothing showable — the abstention still gets said */
+    visionSection = `
+    <div class="section">
+      <h3>What the on-device vision saw</h3>
+      ${abstainCard}
     </div>`;
   }
 
