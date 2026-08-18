@@ -563,8 +563,24 @@ function gridRecover(cells, gray) {
   return recovered.length <= cells.length ? recovered : [];
 }
 
-function countPills(srcRgba) {
+/* Saturation channel as a Mat — colored pills on gray foil are often
+   LUMINANCE-TWINS of the sheet (the pink-sheet failure: 7/10 cells), but in
+   saturation they blaze while foil, print and shadows stay near zero. */
+function saturationChannel(srcRgba) {
+  const sat = new cv.Mat(srcRgba.rows, srcRgba.cols, cv.CV_8UC1);
+  const d = srcRgba.data, s = sat.data, n = srcRgba.rows * srcRgba.cols;
+  for (let i = 0; i < n; i++) {
+    const j = i * 4;
+    const R = d[j], G = d[j + 1], B = d[j + 2];
+    const mx = Math.max(R, G, B);
+    s[i] = mx ? Math.round(255 * (mx - Math.min(R, G, B)) / mx) : 0;
+  }
+  return sat;
+}
+
+function countPills(srcRgba, isRectified) {
   const gray = new cv.Mat();
+  let satMat = null;
   try {
     cv.cvtColor(srcRgba, gray, cv.COLOR_RGBA2GRAY);
     /* three candidate detections: contour bright, contour dark, Hough circles.
@@ -578,20 +594,34 @@ function countPills(srcRgba) {
     const dTrace = detectCellsByContour._trace;
     const hough = detectCellsByHough(gray);
     const bump = detectCellsByBumps(gray);
+    /* the saturation pass: catches colored pills that are luminance-twins of
+       the foil (grayscale-invisible) — foil/print/shadow stay near zero S.
+       RECTIFIED-ONLY: colored pills live on sheets. Measured on the corpus,
+       interior sharpness does NOT separate pills from label text (glossy
+       pills 166 vs bottle text 86), but sheet context does — a saturated
+       grid floating in a room scene is a logo, not medicine. */
+    let satCells = [];
+    if (isRectified) {
+      satMat = saturationChannel(srcRgba);
+      satCells = detectCellsByContour(satMat, false, 15);
+    }
     for (const c of dark) c.srcDark = true; // a dark-pass cell is a hole/torn-foil candidate
     for (const c of bump) c.src = "bump";   // a blurred-dome cell — foil-back bump candidate
+    for (const c of satCells) c.src = "sat"; // a saturation-blob cell — colored pill candidate
     const passes = [
       { k: "bright", cells: bright },
       { k: "dark", cells: dark },
       { k: "hough", cells: hough },
       { k: "bump", cells: bump },
+      { k: "sat", cells: satCells },
     ];
     const candidates = passes.map(p => gateUniform(p.cells)).filter(Boolean);
     /* mixed sheets show intact pills to the BRIGHT pass (or the BUMP pass on a
        printed foil back) and torn cells to the DARK pass — winner-take-all
        caps the count at one family. When two families survive the gate with
        agreeing sizes, their deduped union is usually the true cell set. */
-    const gb = gateUniform(bright), gd = gateUniform(dark), gm = gateUniform(bump);
+    const gb = gateUniform(bright), gd = gateUniform(dark), gm = gateUniform(bump), gs = gateUniform(satCells);
+    if (gs) { const sh = gs.map(c => cellSharpness(gray, c.cx, c.cy, c.r)).sort((a, b) => a - b); countPills._gsSharp = sh[Math.floor(sh.length / 2)]; } else countPills._gsSharp = null;
     const medR = (f) => { const rs = f.map(c => c.r).sort((a, b) => a - b); return rs[Math.floor(rs.length / 2)]; };
     const tryUnion = (fa, fb) => {
       if (!fa || !fb) return;
@@ -605,6 +635,8 @@ function countPills(srcRgba) {
     tryUnion(gb, gd);
     tryUnion(gm, gd);
     tryUnion(gm, gb);
+    tryUnion(gs, gd);   // colored pills + torn holes = the mixed colored sheet
+    tryUnion(gs, gb);
     countPills._dbg = { bright: bright.length, dark: dark.length, hough: hough.length, bump: bump.length,
       fams: { gb: gb ? gb.length : 0, gd: gd ? gd.length : 0, gm: gm ? gm.length : 0 },
       cand: candidates.map(f => f.length), bTrace, dTrace,
@@ -749,7 +781,7 @@ function countPills(srcRgba) {
     }
     const empty = cells.filter(c => c.empty).length;
     return { total: cells.length, full: cells.length - empty - unknown, empty, unknown, cells, estimated: true };
-  } finally { gray.delete(); }
+  } finally { gray.delete(); if (satMat) satMat.delete(); }
 }
 
 function pillColorName(srcRgba, cells) {
@@ -849,11 +881,16 @@ function analyze(imageData) {
        when the sheet fills the frame), fall back to the raw image — and keep
        the overlay in the SAME space the cells were found in. */
     let base = label || src;
-    out.pills = countPills(base);
+    /* the saturation pass is licensed by SHEET CONTEXT (a quad was found in
+       the frame), not by which space we count in — the tight crop can defeat
+       the kernel scale while the raw frame counts fine */
+    const sheetContext = !!label;
+    out.pills = countPills(base, sheetContext);
+    out.gsSharp = countPills._gsSharp;
     out.rectifiedCount = !!label && !!out.pills;
     if (!out.pills && label) {
       base = src;
-      out.pills = countPills(src);
+      out.pills = countPills(src, sheetContext);
     }
     out.dbg = countPills._dbg || null;
     if (out.pills) out.colorName = pillColorName(base, out.pills.cells);

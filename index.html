@@ -1550,6 +1550,7 @@ async function visionAnalyze(el) {
     colorName: result.colorName,
     ms: result.ms,
     rectifiedCount: result.rectifiedCount,
+    gsSharp: result.gsSharp,
     dbg: result.dbg,
     labelDataUrl: result.labelImage ? imageDataToDataUrl(result.labelImage, 0.9) : null,
     overlayDataUrl: result.overlayImage ? imageDataToDataUrl(result.overlayImage, 0.8) : null,
@@ -2387,7 +2388,7 @@ async function runEval() {
         file: item.file, kind: item.kind,
         truth: { cells: item.cells ?? null, intact: item.intact ?? null, empty: item.empty ?? null },
         got: p ? { total: p.total, full: p.full, empty: p.empty, unknown: p.unknown || 0 } : null,
-        deskewed: v.deskewed, ms: v.ms,
+        deskewed: v.deskewed, ms: v.ms, gsSharp: v.gsSharp ?? null,
       };
       /* scoring: a box/bottle photo counts as CORRECT when no blister is claimed */
       row.detectOK = item.kind === "blister" ? !!p : !p;
