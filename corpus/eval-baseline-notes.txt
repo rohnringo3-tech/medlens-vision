@@ -18,3 +18,5 @@ CORPUS ROUND 2 2026-08-18 (7 new photos: boxes/sachet/bottle on wood + dark surf
 CRITICAL NEW FINDING: false-blister rate on text-bearing packages = 5/7 (letters and logos on box faces pass the uniformity gate as "cells"; old white-table corpus hid this). photo-10 box->5 cells, photo-11 box->4, photo-13 box->4, photo-14 sachet->6, photo-15 BOTTLE->9. photo-09 (dark+blur) and photo-12 (45-deg) correctly returned null.
 NEXT DETECTOR TASK: reject letter-blob families - candidate gates to try: grid-regularity requirement (row x col occupancy), minimum cell diameter vs frame, flat-ink vs dome-shading texture test, require sheet-like region around the family.
 Also v3.1 union win recorded: photo-05 salmon oblong EXACT 10/6/4.
+
+GRID GATE 2026-08-18 (v3.2): rotation-corrected 2-D lattice requirement (rows>=2, cols>=2, occupancy>=0.7, spacingCV<=0.3) - false blisters on text 5/7 -> 0/9, photo-05 exact triple preserved, capsule selftest sharpened to exact 8; cost: photo-03 pink sheet now abstains (7/10 cells found -> spacing irregular; real fix is detecting all 10 cells). 10/10 synthetics.

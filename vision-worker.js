@@ -325,6 +325,69 @@ function gateUniform(cells) {
   return out.length >= 4 ? out : null;
 }
 
+/* Dominant lattice angle of a cell family: the median nearest-neighbour
+   direction folded into [-45°, 45°]. Rotating by this before grid analysis
+   lets tilted sheets keep their grid structure. */
+function familyAngle(cells) {
+  const angs = [];
+  for (const c of cells) {
+    let best = null, bd = Infinity;
+    for (const o of cells) {
+      if (o === c) continue;
+      const d = Math.hypot(o.cx - c.cx, o.cy - c.cy);
+      if (d < bd) { bd = d; best = o; }
+    }
+    if (best) {
+      let a = Math.atan2(best.cy - c.cy, best.cx - c.cx);
+      a = ((a % (Math.PI / 2)) + Math.PI / 2) % (Math.PI / 2);
+      angs.push(a);
+    }
+  }
+  if (!angs.length) return 0;
+  angs.sort((x, y) => x - y);
+  let a = angs[Math.floor(angs.length / 2)];
+  if (a > Math.PI / 4) a -= Math.PI / 2;
+  return a;
+}
+
+/* THE anti-text gate. Printed letters and logos form uniform-looking blob
+   families (they defeated the size gate on 5 of 7 real box photos), but they
+   sit on TEXT LINES: their centres never align into a regular 2-D lattice.
+   Real blister cells do — rows AND columns, evenly spaced, densely occupied. */
+function gridScore(cells) {
+  const ang = familyAngle(cells);
+  const cos = Math.cos(-ang), sin = Math.sin(-ang);
+  const pts = cells.map(c => ({ x: c.cx * cos - c.cy * sin, y: c.cx * sin + c.cy * cos }));
+  const tol = cells.reduce((s, c) => s + c.r, 0) / cells.length;
+  const cluster = (vals) => {
+    const centers = [];
+    for (const v of [...vals].sort((a, b) => a - b)) {
+      const hit = centers.find(c => Math.abs(c.mean - v) < tol);
+      if (hit) { hit.sum += v; hit.n++; hit.mean = hit.sum / hit.n; }
+      else centers.push({ mean: v, sum: v, n: 1 });
+    }
+    return centers.map(c => c.mean).sort((a, b) => a - b);
+  };
+  const rows = cluster(pts.map(p => p.y));
+  const cols = cluster(pts.map(p => p.x));
+  const occupancy = cells.length / Math.max(1, rows.length * cols.length);
+  const gapCV = (centers) => {
+    if (centers.length < 3) return 0;
+    const gaps = [];
+    for (let i = 1; i < centers.length; i++) gaps.push(centers[i] - centers[i - 1]);
+    const mean = gaps.reduce((s, g) => s + g, 0) / gaps.length;
+    if (!mean) return 1;
+    const sd = Math.sqrt(gaps.reduce((s, g) => s + (g - mean) ** 2, 0) / gaps.length);
+    return sd / mean;
+  };
+  return { rows: rows.length, cols: cols.length, occupancy, spacingCV: Math.max(gapCV(cols), gapCV(rows)) };
+}
+
+function gridOK(fam) {
+  const g = gridScore(fam);
+  return g.rows >= 2 && g.cols >= 2 && g.occupancy >= 0.7 && g.spacingCV <= 0.3;
+}
+
 /* Blister invariant: cells sit on a grid. Recover cells whose pill was fully
    torn out (no contour) — CONSERVATIVELY: only positions whose row AND column
    both already exist, and every recovered cell is marked, never "intact". */
@@ -392,18 +455,21 @@ function countPills(srcRgba) {
     }
     countPills._dbg = { bright: bright.length, dark: dark.length, hough: hough.length, bTrace, dTrace,
       art: detectCellsByContour._art || null };
-    if (!candidates.length) {
+    /* letters-are-not-pills: every candidate family must show real 2-D grid
+       structure before it may claim to be a blister pack */
+    let viable = candidates.filter(gridOK);
+    if (!viable.length) {
       /* tight-crop retry: in a rectified sheet crop the pills are LARGE
          relative to the frame, so the standard top-hat element is too small
          and hollows them out — try again with a much larger element */
       const bigBright = gateUniform(detectCellsByContour(gray, false, 15, 1.6));
       const bigDark = gateUniform(detectCellsByContour(gray, true, 15, 1.6));
-      if (bigBright) candidates.push(bigBright);
-      if (bigDark) candidates.push(bigDark);
+      if (bigBright && gridOK(bigBright)) viable.push(bigBright);
+      if (bigDark && gridOK(bigDark)) viable.push(bigDark);
     }
-    if (!candidates.length) return null;
-    candidates.sort((a, b) => b.length - a.length);
-    let cells = candidates[0];
+    if (!viable.length) return null;
+    viable.sort((a, b) => b.length - a.length);
+    let cells = viable[0];
     /* recover fully torn-out cells from the grid pattern */
     const recovered = gridRecover(cells, gray);
     cells = cells.concat(recovered);
