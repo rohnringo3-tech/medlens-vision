@@ -16,6 +16,20 @@
     { "file": "photo-07.jpg", "kind": "blister", "cells": 8, "intact": null, "empty": null,
       "desc": "Same nearly-finished sheet as photo-06, shot straighter" },
     { "file": "photo-08.jpg", "kind": "box", "cells": null, "intact": null, "empty": null,
-      "desc": "Quadrajel box on its side, tilted - must NOT claim a blister" }
+      "desc": "Quadrajel box on its side, tilted - must NOT claim a blister" },
+    { "file": "photo-09.jpg", "kind": "box", "cells": null, "intact": null, "empty": null,
+      "desc": "KOACT 375 co-amoxiclav box, DARK leather surface, motion blur, dim light - hard mode" },
+    { "file": "photo-10.jpg", "kind": "box", "cells": null, "intact": null, "empty": null,
+      "desc": "Domstal domperidone box, sideways on wood + lace cloth edge" },
+    { "file": "photo-11.jpg", "kind": "box", "cells": null, "intact": null, "empty": null,
+      "desc": "Flamar-MX box FRONT, wooden table, tilted ~30 deg, shadow across frame" },
+    { "file": "photo-12.jpg", "kind": "box", "cells": null, "intact": null, "empty": null,
+      "desc": "KOACT 375 box diamond-oriented ~45 deg on wood, handwriting on box" },
+    { "file": "photo-13.jpg", "kind": "box", "cells": null, "intact": null, "empty": null,
+      "desc": "TAXIM-O cefixime 400mg Rx box, straight on, wood, price sticker + handwriting" },
+    { "file": "photo-14.jpg", "kind": "box", "cells": null, "intact": null, "empty": null,
+      "desc": "ENO fruit-salt sachet, small green reflective pouch on wood + lace" },
+    { "file": "photo-15.jpg", "kind": "box", "cells": null, "intact": null, "empty": null,
+      "desc": "Feroglobin tonic BOTTLE standing on dining table, cluttered real-room background - first bottle in corpus" }
   ]
 }
