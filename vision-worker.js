@@ -217,6 +217,7 @@ function largestGapThreshold(values) {
 /* ---- detector v2: shape-agnostic contour pass (round, capsule, oblong) ---- */
 function detectCellsByContour(gray, inverted, bias, kernelDiv = 3, openSize = 5, gates = {}) {
   const maxAspect = gates.maxAspect || 3.2, minFill = gates.minFill || 0.6;
+  const closeSize = gates.closeSize || 0; // >0 welds torn fragments into one blob per cell
   const bin = new cv.Mat(), kernel = cv.getStructuringElement(cv.MORPH_ELLIPSE, new cv.Size(openSize, openSize));
   const diff = new cv.Mat();
   const contours = new cv.MatVector(), hier = new cv.Mat();
@@ -227,18 +228,33 @@ function detectCellsByContour(gray, inverted, bias, kernelDiv = 3, openSize = 5,
        blobs SMALLER than the structuring element and cancels everything at
        larger scales — so pills pop out while the blister sheet itself, its
        borders and lighting gradients vanish. This is the multi-scale trick
-       a plain local-mean threshold cannot do (the sheet border always leaks). */
+       a plain local-mean threshold cannot do (the sheet border always leaks).
+       gates.diff lets the rescue ladder reuse one hat across weld sizes —
+       this is the single most expensive op in the pipeline. */
     let big = Math.max(31, Math.round(minDim / kernelDiv)); if (big % 2 === 0) big++;
-    const bigK = cv.getStructuringElement(cv.MORPH_RECT, new cv.Size(big, big));
-    try {
-      cv.morphologyEx(gray, diff, inverted ? cv.MORPH_BLACKHAT : cv.MORPH_TOPHAT, bigK);
-    } finally { bigK.delete(); }
+    if (gates.diff) {
+      gates.diff.copyTo(diff);
+    } else {
+      const bigK = cv.getStructuringElement(cv.MORPH_RECT, new cv.Size(big, big));
+      try {
+        cv.morphologyEx(gray, diff, inverted ? cv.MORPH_BLACKHAT : cv.MORPH_TOPHAT, bigK);
+      } finally { bigK.delete(); }
+      if (gates.keepDiff) diff.copyTo(gates.keepDiff);
+    }
     /* Otsu on the top-hat auto-separates pill-peaks from background leak
        (embossed seams / cell rings drag erosion down and leak the whole
        sheet past any fixed bias); floor it at `bias` for near-flat images */
     const otsuT = cv.threshold(diff, bin, 0, 255, cv.THRESH_BINARY + cv.THRESH_OTSU);
     if (otsuT < bias) cv.threshold(diff, bin, bias, 255, cv.THRESH_BINARY);
     cv.morphologyEx(bin, bin, cv.MORPH_OPEN, kernel);
+    /* CLOSE welds the shards of a single torn/pressed-out cell (crumpled foil
+       fragments into several sub-blobs) back into one blob before contouring —
+       used by the all-empty-pack rescue, off by default */
+    if (closeSize > 1) {
+      const ck = cv.getStructuringElement(cv.MORPH_ELLIPSE, new cv.Size(closeSize, closeSize));
+      cv.morphologyEx(bin, bin, cv.MORPH_CLOSE, ck);
+      ck.delete();
+    }
     if (self.__dumpBins && !inverted) {
       const sx = Math.ceil(bin.cols / 90), sy = Math.ceil(bin.rows / 40);
       let art = "";
@@ -277,6 +293,64 @@ function detectCellsByContour(gray, inverted, bias, kernelDiv = 3, openSize = 5,
     detectCellsByContour._trace = { n: contours.size(), big, trace };
   } finally { bin.delete(); kernel.delete(); diff.delete(); contours.delete(); hier.delete(); }
   return cells;
+}
+
+/* Distant/crumpled empty sheets: the label quad fails on crumpled foil, so
+   counting runs on the raw frame — where each torn cell is a ~15 px speck the
+   0.2%-of-frame area floor throws away. Locate the SWARM of sub-floor dark
+   blobs (torn cells cluster tightly; scattered wood-grain flecks do not),
+   and return a crop rectangle so the normal machinery can re-judge at a
+   scale where the cells clear the honest gates. */
+function swarmCrop(gray, cachedHat) {
+  const bin = new cv.Mat(), diff = new cv.Mat();
+  const contours = new cv.MatVector(), hier = new cv.Mat();
+  try {
+    if (cachedHat) {
+      cachedHat.copyTo(diff);
+    } else {
+      const minDim = Math.min(gray.rows, gray.cols);
+      let big = Math.max(31, Math.round(minDim / 3)); if (big % 2 === 0) big++;
+      const bigK = cv.getStructuringElement(cv.MORPH_RECT, new cv.Size(big, big));
+      try { cv.morphologyEx(gray, diff, cv.MORPH_BLACKHAT, bigK); } finally { bigK.delete(); }
+    }
+    const otsuT = cv.threshold(diff, bin, 0, 255, cv.THRESH_BINARY + cv.THRESH_OTSU);
+    if (otsuT < 8) cv.threshold(diff, bin, 8, 255, cv.THRESH_BINARY);
+    /* same OPEN as the detector: without it, thin noise bridges weld the
+       specks into big webs and the swarm disappears into the area cap */
+    const openK = cv.getStructuringElement(cv.MORPH_ELLIPSE, new cv.Size(3, 3));
+    try { cv.morphologyEx(bin, bin, cv.MORPH_OPEN, openK); } finally { openK.delete(); }
+    cv.findContours(bin, contours, hier, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
+    const frameArea = gray.rows * gray.cols;
+    const pts = [];
+    for (let i = 0; i < contours.size(); i++) {
+      const c = contours.get(i);
+      try {
+        const area = cv.contourArea(c);
+        if (area < 12 || area > frameArea * 0.05) continue;
+        const rr = cv.minAreaRect(c);
+        pts.push({ x: rr.center.x, y: rr.center.y });
+      } finally { c.delete(); }
+    }
+    swarmCrop._dbg = { pts: pts.length };
+    if (pts.length < 6) return null;
+    const med = (vals) => { const s = [...vals].sort((a, b) => a - b); return s[Math.floor(s.length / 2)]; };
+    const mx = med(pts.map(p => p.x)), my = med(pts.map(p => p.y));
+    const dists = pts.map(p => Math.hypot(p.x - mx, p.y - my));
+    const mdist = med(dists);
+    const keep = pts.filter((p, i) => dists[i] <= Math.max(mdist * 2.5, 40));
+    swarmCrop._dbg.keep = keep.length;
+    if (keep.length < 6) return null;
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    for (const p of keep) { x0 = Math.min(x0, p.x); y0 = Math.min(y0, p.y); x1 = Math.max(x1, p.x); y1 = Math.max(y1, p.y); }
+    const margin = Math.max(24, (x1 - x0 + y1 - y0) * 0.12);
+    x0 = Math.max(0, Math.round(x0 - margin)); y0 = Math.max(0, Math.round(y0 - margin));
+    x1 = Math.min(gray.cols, Math.round(x1 + margin)); y1 = Math.min(gray.rows, Math.round(y1 + margin));
+    const w = x1 - x0, h = y1 - y0;
+    swarmCrop._dbg.box = [x0, y0, w, h, +(w * h / frameArea).toFixed(2)];
+    if (w < 60 || h < 60) return null;               // too small to hold a real sheet
+    if (w * h > frameArea * 0.7) return null;        // not actually a zoom — bail
+    return { x: x0, y: y0, w, h };
+  } finally { bin.delete(); diff.delete(); contours.delete(); hier.delete(); }
 }
 
 /* ---- detector v4: foil-back BUMP pass ---- */
@@ -619,7 +693,8 @@ function saturationChannel(srcRgba) {
 
 function countPills(srcRgba, isRectified) {
   const gray = new cv.Mat();
-  let satMat = null;
+  let satMat = null, brightHat = null, darkHat = null;
+  countPills._rescue = null;
   try {
     cv.cvtColor(srcRgba, gray, cv.COLOR_RGBA2GRAY);
     /* three candidate detections: contour bright, contour dark, Hough circles.
@@ -627,9 +702,13 @@ function countPills(srcRgba, isRectified) {
     /* three independent detections: clearly-brighter blobs, clearly-darker
        blobs, and Hough circles. The plausibility gate + populous-vote picks
        the survivor — bright for pills on foil, dark for pressed-out holes. */
-    const bright = detectCellsByContour(gray, false, 15);
+    /* keepDiff: the hats computed here are identical to what the rescue
+       ladder needs later (a hat depends only on direction + kernel, not on
+       bias) — cache them so the rescue pays no morphology at all */
+    brightHat = new cv.Mat(); darkHat = new cv.Mat();
+    const bright = detectCellsByContour(gray, false, 15, 3, 5, { keepDiff: brightHat });
     const bTrace = detectCellsByContour._trace;
-    const dark = detectCellsByContour(gray, true, 15);
+    const dark = detectCellsByContour(gray, true, 15, 3, 5, { keepDiff: darkHat });
     const dTrace = detectCellsByContour._trace;
     const hough = detectCellsByHough(gray);
     const bump = detectCellsByBumps(gray);
@@ -720,12 +799,62 @@ function countPills(srcRgba, isRectified) {
          full 2-D grid gate; every cell found this way IS a hole, so the
          verdict is "empty or nearly empty pack". The grid gate is what keeps
          dark text on boxes out — same defense as everywhere else. */
-      const torn = detectCellsByContour(gray, true, 8, 3, 5, { maxAspect: 4.0, minFill: 0.35 });
-      const tornFam = gateUniform(torn);
-      if (tornFam && gridOK(tornFam)) {
-        for (const c of tornFam) { c.empty = true; c.srcDark = true; }
-        return { total: tornFam.length, full: 0, empty: tornFam.length, unknown: 0,
-                 cells: tornFam, estimated: true, emptyPack: true };
+      const minDim = Math.min(gray.rows, gray.cols);
+      /* weld ladder: 0 = raw shards, then growing CLOSE kernels; a kernel that
+         welds a cell's shards without bridging the inter-cell gap exists at
+         SOME scale, but that scale is unknowable a priori — so try a ladder
+         and let the grid gate (the only judge) accept the first honest rung */
+      const ladder = [0, 5, 9, Math.max(11, Math.round(minDim / 60)) | 1];
+      countPills._rescue = [];
+      for (const inv of [true, false]) {
+        const hat = inv ? darkHat : brightHat; // cached by the primary passes — zero extra morphology
+        for (const closeSize of ladder) {
+          const torn = detectCellsByContour(gray, inv, 8, 3, 5, { maxAspect: 4.0, minFill: 0.35, closeSize, diff: hat });
+          const tornFam = gateUniform(torn);
+          countPills._rescue.push({ inv, cs: closeSize, raw: torn.length, fam: tornFam ? tornFam.length : 0,
+            grid: tornFam ? gridScore(tornFam) : null });
+          if (tornFam && gridOK(tornFam)) {
+            for (const c of tornFam) { c.empty = true; c.srcDark = true; }
+            return { total: tornFam.length, full: 0, empty: tornFam.length, unknown: 0,
+                     cells: tornFam, estimated: true, emptyPack: true };
+          }
+          /* welding merges shards — from fewer than 4 shards it can never
+             build a 4-cell family, so the remaining rungs are dead weight */
+          if (closeSize === 0 && torn.length < 4) break;
+        }
+      }
+      /* ZOOM retry: a distant crumpled sheet leaves its torn cells below the
+         area floor entirely. Find the blob swarm, crop to it, and re-judge at
+         the bigger scale — grid gate still the only judge, coords mapped back. */
+      const roiRect = swarmCrop(gray, darkHat);
+      countPills._rescue.push({ roi: roiRect, swarm: swarmCrop._dbg || null });
+      if (roiRect) {
+        const view = gray.roi(new cv.Rect(roiRect.x, roiRect.y, roiRect.w, roiRect.h));
+        const zoom = view.clone(); view.delete();
+        try {
+          for (const inv of [true, false]) {
+            const zhat = new cv.Mat();
+            try {
+              for (const closeSize of [0, 5, 9]) {
+                const gates = { maxAspect: 4.0, minFill: 0.35, closeSize };
+                if (closeSize === 0) gates.keepDiff = zhat; else gates.diff = zhat;
+                const torn = detectCellsByContour(zoom, inv, 8, 3, 5, gates);
+                const tornFam = gateUniform(torn);
+                countPills._rescue.push({ zoom: true, inv, cs: closeSize, raw: torn.length,
+                  fam: tornFam ? tornFam.length : 0, grid: tornFam ? gridScore(tornFam) : null });
+                /* STRICT grid only. A crumple-tolerant loose grid was tried here
+                   and immediately re-opened the letters-are-pills hole (a text
+                   block on a box passed it) — a destroyed crumpled sheet is the
+                   one case where abstaining IS the right product answer. */
+                if (tornFam && gridOK(tornFam)) {
+                  for (const c of tornFam) { c.empty = true; c.srcDark = true; c.cx += roiRect.x; c.cy += roiRect.y; }
+                  return { total: tornFam.length, full: 0, empty: tornFam.length, unknown: 0,
+                           cells: tornFam, estimated: true, emptyPack: true };
+                }
+              }
+            } finally { zhat.delete(); }
+          }
+        } finally { zoom.delete(); }
       }
       return null;
     }
@@ -838,7 +967,7 @@ function countPills(srcRgba, isRectified) {
     }
     const empty = cells.filter(c => c.empty).length;
     return { total: cells.length, full: cells.length - empty - unknown, empty, unknown, cells, estimated: true };
-  } finally { gray.delete(); if (satMat) satMat.delete(); }
+  } finally { gray.delete(); if (satMat) satMat.delete(); if (brightHat) brightHat.delete(); if (darkHat) darkHat.delete(); }
 }
 
 function pillColorName(srcRgba, cells) {
@@ -950,6 +1079,7 @@ function analyze(imageData) {
       out.pills = countPills(src, sheetContext);
     }
     out.dbg = countPills._dbg || null;
+    out.rescueDbg = countPills._rescue || null;
     if (out.pills) out.colorName = pillColorName(base, out.pills.cells);
     out.overlayImage = drawOverlay(base, base === src ? quad : null, out.pills);
     if (out.pills) out.pills.cells = out.pills.cells.map(c => ({ cx: c.cx, cy: c.cy, r: c.r, empty: !!c.empty, recovered: !!c.recovered, unknown: !!c.unknown }));
