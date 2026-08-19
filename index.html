@@ -401,6 +401,15 @@
   .chip.vis.ok { color: var(--ok-text); border-color: var(--ok-line); background: var(--ok-dim); }
   .chip.vis.used { color: var(--danger-text); border-color: var(--danger-line); background: var(--danger-dim); }
   .vis-img { width: 100%; max-height: 340px; object-fit: contain; border-radius: 12px; border: 1px solid var(--line); background: #0b1b3a; margin-bottom: 10px; }
+  .ask-row { display: flex; gap: 8px; margin-top: 10px; }
+  .ask-row input { flex: 1; min-width: 0; border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; font: inherit; font-size: 16px; color: var(--ink); background: var(--white); }
+  .ask-row input:focus { outline: 2px solid var(--blue); outline-offset: 1px; }
+  .ask-row .btn { padding: 12px 18px; }
+  .ask-answer { margin-top: 10px; background: var(--tint); border: 1px solid #c9d9fb; border-radius: 12px; padding: 12px 14px; line-height: 1.55; }
+  .ask-answer .pro { display: block; margin-top: 8px; color: var(--amber-text); font-weight: 600; }
+  .chip.q { cursor: pointer; background: var(--white); }
+  .chip.q:hover { border-color: var(--blue); color: var(--blue-deep); }
+  #btnMic.listening { background: var(--danger-dim); border-color: var(--danger-line); color: var(--danger-text); }
 
   .result-actions { display: flex; gap: 10px; margin-top: 18px; }
   .result-actions .btn { flex: 1; }
@@ -1580,6 +1589,57 @@ function extractJson(text) {
 }
 function gemErr(code, msg) { const e = new Error(msg || code); e.code = code; return e; }
 
+/* ---- Ask-about-this-medicine (voice + text Q&A) ----
+   Guardrailed on BOTH ends: this prompt (BYOK path) and the identical
+   server-owned prompt in deploy/worker.js mode "ask" refuse medicine
+   recommendations, diagnosis and invented doses — the app answers questions
+   about the SCANNED medicine and points everything else to a professional. */
+function askPromptClient(med, question, lang) {
+  return `You are MedLens, a careful pharmacist's assistant. The user scanned this medicine: ${med.name}${med.generic ? " (" + med.generic + ")" : ""}${med.strength ? ", " + med.strength : ""}${med.form ? ", " + med.form : ""}.
+Their question: "${question}"
+Answer in ${lang}, in 2-4 short plain sentences a 12-year-old understands.
+STRICT RULES — these override everything:
+- Only answer questions about THIS medicine: how and when to take it, food, storage, missed doses, common side effects, what it is for, general safety.
+- NEVER recommend a different medicine or treatment. NEVER diagnose. NEVER invent a dose the label would not state. NEVER answer "what should I take for X" — for that, reply that choosing a medicine is a pharmacist's or doctor's job because it depends on the person, and set see_professional true.
+- If the question involves children, pregnancy, breastfeeding, overdose, or mixing with other medicines, give only general caution and tell them to ask a pharmacist or doctor, and set see_professional true.
+- If the question is not about this medicine at all, say you can only answer about the scanned medicine.
+Return ONLY JSON: {"answer":"your reply in ${lang}","see_professional":true|false}`;
+}
+
+async function askAboutMed(med, question) {
+  const key = getKey();
+  const lang = getLang();
+  const body = key
+    ? { contents: [{ parts: [{ text: askPromptClient(med, question, lang) }] }],
+        generationConfig: { response_mime_type: "application/json", temperature: 0.3, maxOutputTokens: 512 } }
+    : { mode: "ask", lang, question,
+        med: { name: med.name || "", generic: med.generic || "", strength: med.strength || "", form: med.form || "" } };
+  const resp = await geminiRequest(body, 20000);
+  if (!resp.ok) {
+    if (resp.status === 429) throw gemErr("quota");
+    throw gemErr("busy", "ask HTTP " + resp.status);
+  }
+  const data = await resp.json();
+  const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+  const parsed = JSON.parse(extractJson(text));
+  return { answer: String(parsed.answer || "").slice(0, 1200), seeProfessional: !!parsed.see_professional };
+}
+
+/* speech in/out — built-in browser APIs, graceful when absent */
+const SPEECH_LANGS = { English: "en-US", Swahili: "sw-TZ", French: "fr-FR", Spanish: "es-ES", Portuguese: "pt-PT", Arabic: "ar-SA", Hindi: "hi-IN" };
+function speechLang() { return SPEECH_LANGS[getLang()] || "en-US"; }
+function speakAnswer(text) {
+  try {
+    if (!("speechSynthesis" in window)) return;
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = speechLang();
+    const match = speechSynthesis.getVoices().find(v => v.lang && v.lang.startsWith(u.lang.slice(0, 2)));
+    if (match) u.voice = match;
+    speechSynthesis.speak(u);
+  } catch {}
+}
+
 /* One door to Gemini: the user's own key when present, otherwise the deployed
    rate-limited proxy (PROXY_URL). The proxy returns Gemini's JSON unchanged. */
 function geminiRequest(body, timeoutMs) {
@@ -1938,6 +1998,23 @@ function renderResult(med, fda, ix, vision) {
       <div class="ix-note">Quoted from the official US label of a matching product${fda.setid ? ` — <a href="https://dailymed.nlm.nih.gov/dailymed/setid.cfm?setid=${esc(fda.setid)}" target="_blank" rel="noopener" style="color:var(--blue)">read the full label</a>` : ""}. Strengths and directions can differ from your package — the plain-language card above is an AI summary, this is the source.</div>
     </div>` : ""}
 
+    ${(!med.visionOnly && canScanLive()) ? `
+    <div class="section">
+      <h3>Ask about this medicine</h3>
+      <div class="chips">
+        <button class="chip q" data-q="Can I take it with food?">With food?</button>
+        <button class="chip q" data-q="What should I do if I miss a dose?">Missed a dose?</button>
+        <button class="chip q" data-q="How should I store this medicine?">How to store it?</button>
+      </div>
+      <div class="ask-row">
+        <input id="askInput" type="text" maxlength="300" placeholder="Type a question, or tap the mic and speak">
+        <button class="btn btn-ghost" id="btnMic" aria-label="Ask by voice">Mic</button>
+        <button class="btn btn-primary" id="btnAsk">Ask</button>
+      </div>
+      <div id="askAnswer" class="ask-answer hidden" aria-live="polite"></div>
+      <div class="ix-note">Answers cover this medicine only. Choosing a medicine for your symptoms is a pharmacist's or doctor's job — MedLens will always say so.</div>
+    </div>` : ""}
+
     <div class="section sources">
       <h3>Sources</h3>
       <div class="chips">${sources}</div>
@@ -1954,6 +2031,48 @@ function renderResult(med, fda, ix, vision) {
     meds.push({ name: med.name, generic: med.generic, strength: med.strength || "", at: Date.now(), data: med, fda: fda || null });
     setMeds(meds);
     return true;
+  }
+  /* ---- Ask about this medicine: text, tap-chips, and voice ---- */
+  if ($("btnAsk")) {
+    const askEl = $("askAnswer");
+    const submitAsk = async (q) => {
+      q = String(q || $("askInput").value || "").trim();
+      if (!q) return;
+      $("askInput").value = q;
+      askEl.classList.remove("hidden");
+      askEl.textContent = "Thinking...";
+      try {
+        const res = await askAboutMed(med, q);
+        askEl.innerHTML = esc(res.answer) +
+          (res.seeProfessional ? '<span class="pro">For this one, ask a pharmacist or doctor in person.</span>' : "");
+        speakAnswer(res.answer);
+      } catch (err) {
+        askEl.textContent = err && err.code === "quota"
+          ? "The AI is out of breath for now - try again in a few minutes."
+          : "Could not get an answer - check your connection and try again.";
+      }
+    };
+    $("btnAsk").addEventListener("click", () => submitAsk());
+    $("askInput").addEventListener("keydown", (e) => { if (e.key === "Enter") submitAsk(); });
+    document.querySelectorAll(".chip.q").forEach(ch => ch.addEventListener("click", () => submitAsk(ch.dataset.q)));
+    /* voice input — hide the mic where the browser has no recognizer */
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) { $("btnMic").style.display = "none"; }
+    else $("btnMic").addEventListener("click", () => {
+      try {
+        const rec = new SR();
+        rec.lang = speechLang();
+        rec.interimResults = false;
+        rec.maxAlternatives = 1;
+        $("btnMic").classList.add("listening");
+        $("btnMic").textContent = "Listening";
+        const done = () => { $("btnMic").classList.remove("listening"); $("btnMic").textContent = "Mic"; };
+        rec.onresult = (e) => { done(); const t = e.results[0][0].transcript; if (t) submitAsk(t); };
+        rec.onerror = () => { done(); toast("Could not hear you - try again or type the question"); };
+        rec.onend = done;
+        rec.start();
+      } catch { toast("Voice input is not available on this browser - type instead"); }
+    });
   }
   if ($("btnSaveMed")) $("btnSaveMed").addEventListener("click", () => {
     if (saveThisMed()) {

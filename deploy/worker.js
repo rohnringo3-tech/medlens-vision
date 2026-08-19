@@ -136,6 +136,18 @@ Return ONLY JSON: {"interactions":[{"with":"name of the existing medicine","seve
 Only include REAL, well-established interactions. If there are none, return {"interactions":[]}. Write notes in ${lang}.`;
 }
 
+function askPrompt(med, question, lang) {
+  return `You are MedLens, a careful pharmacist's assistant. The user scanned this medicine: ${med.name}${med.generic ? " (" + med.generic + ")" : ""}${med.strength ? ", " + med.strength : ""}${med.form ? ", " + med.form : ""}.
+Their question: "${question}"
+Answer in ${lang}, in 2-4 short plain sentences a 12-year-old understands.
+STRICT RULES — these override everything:
+- Only answer questions about THIS medicine: how and when to take it, food, storage, missed doses, common side effects, what it is for, general safety.
+- NEVER recommend a different medicine or treatment. NEVER diagnose. NEVER invent a dose the label would not state. NEVER answer "what should I take for X" — for that, reply that choosing a medicine is a pharmacist's or doctor's job because it depends on the person, and set see_professional true.
+- If the question involves children, pregnancy, breastfeeding, overdose, or mixing with other medicines, give only general caution and tell them to ask a pharmacist or doctor, and set see_professional true.
+- If the question is not about this medicine at all, say you can only answer about the scanned medicine.
+Return ONLY JSON: {"answer":"your reply in ${lang}","see_professional":true|false}`;
+}
+
 /* ---- request -> Gemini body --------------------------------------------- */
 function buildGeminiBody(body) {
   const lang = LANGS.has(body.lang) ? body.lang : "English";
@@ -171,6 +183,20 @@ function buildGeminiBody(body) {
       gemini: {
         contents: [{ parts: [{ text: interactionsPrompt(newMed, saved, lang) }] }],
         generationConfig: { response_mime_type: "application/json", temperature: 0.1, maxOutputTokens: MAX_OUTPUT_TOKENS },
+      },
+    };
+  }
+
+  if (body.mode === "ask") {
+    const m = body.med || {};
+    const med = { name: clean(m.name, 80), generic: clean(m.generic, 120),
+                  strength: clean(m.strength, 30), form: clean(m.form, 30) };
+    const question = clean(body.question, 300);
+    if (!med.name || !question) return { err: "Missing med.name or question" };
+    return {
+      gemini: {
+        contents: [{ parts: [{ text: askPrompt(med, question, lang) }] }],
+        generationConfig: { response_mime_type: "application/json", temperature: 0.3, maxOutputTokens: 512 },
       },
     };
   }
