@@ -5,7 +5,7 @@
  *    so visitors and judges scan real medicines with ZERO setup.
  *
  * The Worker OWNS the prompts. The client sends only a minimal typed payload
- * ({ mode: "scan" | "interactions", ... }) and the Worker builds the full
+ * ({ mode: "scan" | "interactions" | "ask", ... }) and the Worker builds the full
  * Gemini request server-side. Any client-supplied prompt or generationConfig
  * is rejected, so this endpoint cannot be repurposed as a general-purpose LLM
  * on the owner's key. (BYOK users in the app talk to Google directly and never

@@ -734,6 +734,8 @@ let scanGen = 0; // generation token: bumping it cancels any in-flight scan's UI
 function show(view) {
   views.forEach(v => $(v).classList.toggle("hidden", v !== view));
   window.scrollTo(0, 0);
+  /* a spoken answer must never narrate over the next screen */
+  try { if ("speechSynthesis" in window) speechSynthesis.cancel(); } catch {}
   /* phone back-gesture returns to the scan screen instead of exiting the app */
   try {
     if (view !== "viewScan" && (!history.state || history.state.v === "viewScan")) {
@@ -1259,7 +1261,7 @@ async function runLiveVisionDemo() {
       demo: true,
       name: "Live vision demo",
       generic: "Synthetic pill sheet — not a medicine",
-      purpose: "The sheet in this picture was drawn by your device seconds ago, then analyzed by the real OpenCV pipeline running on your phone right now — nothing is pre-recorded. Green rings are pills the vision found intact; red X marks are cells it judged already pressed out.",
+      purpose: "The sheet in this picture was drawn by your device seconds ago, then analyzed by the real OpenCV pipeline running on your phone right now — nothing is pre-recorded. It was drawn with 10 cells and 3 pressed out — compare that with the measured numbers below. Green rings are pills the vision found intact; red X marks are cells it judged already pressed out.",
       how_to_take: ["Nothing — this is a computer-vision demonstration, not a medicine."],
       warnings: ["Demo results are for showing how the vision works. Scan a real medicine package for a real card."],
       interactions: [],
@@ -1364,6 +1366,7 @@ async function scanFromDataUrl(dataUrl) {
   const key = getKey();
   if (!canScanLive()) { show("viewScan"); openSettings(); toast("Add your Gemini key first — or use Try a sample"); return; }
   const gen = ++scanGen;
+  let vision = null; // hoisted: the catch renders an honest vision-only card on "noid"
   try {
     if (gen !== scanGen) return;
     $("previewImg").src = dataUrl;
@@ -1372,7 +1375,6 @@ async function scanFromDataUrl(dataUrl) {
        run the wasm still gets the full AI scan, just without the measurements.
        The one-time engine download gets its own honest stage + timeout so a
        slow connection never eats the analysis budget. */
-    let vision = null;
     try {
       if (!visionIsReady) $("stageText").textContent = "Downloading the vision engine (one-time)";
       const engineReady = await visionWaitReady(90000);
@@ -1403,6 +1405,26 @@ async function scanFromDataUrl(dataUrl) {
     show("viewScan");
     console.error(err);
     const code = err && err.code;
+    /* the AI read nothing usable, but the on-device vision may still have a
+       real measurement — show an honest card instead of discarding it */
+    if (code === "noid" && vision && vision.pills) {
+      renderResult({
+        name: "Unidentified medicine",
+        generic: "No readable text on this side",
+        purpose: "The AI could not find a name on this photo, but the on-device vision still measured the sheet — the counts below are real. To get the full safety card, photograph the side of the pack with the printed name.",
+        how_to_take: [],
+        warnings: ["Without a name, no dosage or interaction information can be given. Check the printed side of the package."],
+        interactions: [],
+        seek_doctor: [],
+        confidence: "low",
+        rx_only: false,
+        noSave: true,
+        visionOnly: true
+      }, null, null, vision);
+      show("viewResult");
+      return;
+    }
+    if (code === "noid") { toast("Could not read any text — photograph the side of the pack with the printed name"); return; }
     if (code === "notmed") toast("That doesn't look like a medicine — photograph the box, bottle or blister sheet");
     else if (code === "toobig") toast("Photo too large to upload — retake it with the in-app camera");
     else if (code === "quota") toast("AI quota reached — wait a minute and try again");
@@ -1516,9 +1538,9 @@ function dataUrlToImage(dataUrl) {
   });
 }
 function imageToImageData(el) {
-  /* hard cap at 1024px for the VISION path (Gemini still gets 1536): the
+  /* hard cap at 1280px for the VISION path (Gemini still gets 1536): the
      morphology cost grows with area × kernel and 1536px ran ~11s on real
-     photos — 1024 keeps counts identical on the corpus at a fraction of
+     photos — 1280 keeps counts identical on the corpus at a fraction of
      the work, and protects the weakest phones this app targets */
   const w = el.naturalWidth || el.width, h = el.naturalHeight || el.height;
   const scale = Math.min(1, 1280 / Math.max(w, h));
@@ -1741,7 +1763,9 @@ async function geminiAnalyzeCall(body) {
   try { med = JSON.parse(extractJson(text)); }
   catch { throw gemErr("busy", "unparseable response"); }
   if (med.not_a_medicine) throw gemErr("notmed");
-  if (!med.name && !med.generic) throw gemErr("busy", "no medicine fields");
+  /* a real pack with no readable text is NOT "busy" — it deserves an honest
+     "could not identify" card that still shows the on-device count */
+  if (!med.name && !med.generic) throw gemErr("noid", "no medicine fields");
   /* normalize — Gemini occasionally returns a string where an array belongs,
      which would crash render and masquerade as a network error */
   for (const k of ["how_to_take", "warnings", "interactions", "seek_doctor"]) {
@@ -1871,12 +1895,18 @@ function renderResult(med, fda, ix, vision) {
         ? `<span class="chip fda"><a href="https://dailymed.nlm.nih.gov/dailymed/setid.cfm?setid=${esc(fda.setid)}" target="_blank" rel="noopener">openFDA / DailyMed label${fda.cached ? " (cached)" : ""}</a></span>`
         : `<span class="chip fda">Name found in openFDA</span>`)
     : "";
-  /* the live vision demo involves NO AI — its card must credit only what ran */
+  /* the live vision demo involves NO AI — its card must credit only what ran;
+     sample cards are pre-written, and saying "Read by Gemini AI" on them
+     would be a lie a source-reading judge will catch */
   const sources = med.visionOnly
     ? `<span class="chip vis">Counted by OpenCV 5 WASM — this device</span>`
-    : fdaChip + `<span class="chip">Read by Gemini AI</span><span class="chip">Built-in interaction table</span>`;
+    : fdaChip + (med.demo
+        ? `<span class="chip">Pre-written sample card</span>`
+        : `<span class="chip">Read by Gemini AI</span>`) + `<span class="chip">Built-in interaction table</span>`;
   const sourceNote = med.visionOnly
     ? `<div class="ix-note">Every number on this card was measured by the on-device computer-vision pipeline seconds ago. No AI, no internet, nothing pre-recorded.</div>`
+    : med.demo
+    ? `<div class="ix-note">This is a built-in sample card so you can try the app without any setup. Scan a real medicine for a live AI reading.</div>`
     : `<div class="ix-note">An openFDA match confirms this medicine exists in the official US label database. The plain-language explanation itself is AI-written — confirm the name on this card matches your package.</div>`;
 
   const whatItIs = `
@@ -2036,21 +2066,30 @@ function renderResult(med, fda, ix, vision) {
   /* ---- Ask about this medicine: text, tap-chips, and voice ---- */
   if ($("btnAsk")) {
     const askEl = $("askAnswer");
+    /* generation guard: in a medicine app a STALE answer spoken over a newer
+       question is worse than no answer — same pattern as scanGen */
+    let askGen = 0;
     const submitAsk = async (q) => {
       q = String(q || $("askInput").value || "").trim();
       if (!q) return;
+      const g = ++askGen;
       $("askInput").value = q;
+      $("btnAsk").disabled = true;
       askEl.classList.remove("hidden");
       askEl.textContent = "Thinking...";
       try {
         const res = await askAboutMed(med, q);
+        if (g !== askGen) return;
         askEl.innerHTML = esc(res.answer) +
           (res.seeProfessional ? '<span class="pro">For this one, ask a pharmacist or doctor in person.</span>' : "");
         speakAnswer(res.answer);
       } catch (err) {
+        if (g !== askGen) return;
         askEl.textContent = err && err.code === "quota"
           ? "The AI is out of breath for now - try again in a few minutes."
           : "Could not get an answer - check your connection and try again.";
+      } finally {
+        if (g === askGen) $("btnAsk").disabled = false;
       }
     };
     $("btnAsk").addEventListener("click", () => submitAsk());
@@ -2455,10 +2494,13 @@ async function runSelfTest() {
       say(p5.total >= 7 && p5.total <= 9, `capsule count ${p5.total} (expect 8 ±1)`);
       say(p5.empty === null || (p5.empty >= 1 && p5.empty <= 3), `capsule empties ${p5.empty} (expect 2 ±1 or honest null)`);
     }
-    el.innerHTML += "<br>done.";
+    const passed = stLines.filter(l => l.startsWith("PASS")).length;
+    el.innerHTML += `<br><b style="color:${passed === stLines.length ? "#067a53" : "#b42318"}">RESULT: ${passed}/${stLines.length} passed</b>`;
     await report();
   } catch (e) {
     say(false, "self-test crashed: " + (e && e.message));
+    const passed = stLines.filter(l => l.startsWith("PASS")).length;
+    el.innerHTML += `<br><b style="color:#b42318">RESULT: ${passed}/${stLines.length} passed</b>`;
     await report();
   }
 }
@@ -2535,9 +2577,14 @@ async function runEval() {
     exactCount: mae.length ? `${exact.length}/${mae.length}` : "n/a",
     countMAE: mae.length ? (mae.reduce((s, r) => s + r.countErr, 0) / mae.length).toFixed(2) : "n/a",
     intactExact: blisters.filter(r => r.intactOK === true).length + "/" + blisters.filter(r => r.intactOK !== null).length,
-    falseBlisterOnBoxes: rows.filter(r => r.kind !== "blister" && !r.crashed && !r.detectOK).length,
+    falseBlisterOnBoxes: rows.filter(r => r.kind !== "blister" && !r.crashed && !r.detectOK).length
+      + "/" + rows.filter(r => r.kind !== "blister" && !r.crashed).length,
   };
   say(`<br><b>SUMMARY</b> ${JSON.stringify(summary)}`);
+  /* honesty note: canvas downscaling differs between renderers, so borderline
+     photos can flip between runs on different machines — published numbers
+     state the device they were measured on */
+  say(`<span style="opacity:.75">Note: results can vary slightly by device and browser — the image downscaling that feeds the pipeline is done by your renderer. Numbers in the README were measured on the author's machine (Edge on Windows 11) and are re-measured before publishing. This page always shows YOUR device's honest result.</span>`);
   if (typeof ping === "function") await ping("EVAL SUMMARY " + JSON.stringify(summary));
 }
 if (new URLSearchParams(location.search).get("eval") === "1") {

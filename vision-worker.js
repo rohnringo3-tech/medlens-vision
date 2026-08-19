@@ -795,10 +795,12 @@ function countPills(srcRgba, isRectified) {
     if (!viable.length) {
       /* ALL-EMPTY-PACK rescue: a finished sheet is nothing but crumpled torn
          cells — irregular blobs that fail the normal fill/aspect gates. Relax
-         shape (fill 0.35, aspect 4.0) for the DARK pass only and demand the
-         full 2-D grid gate; every cell found this way IS a hole, so the
-         verdict is "empty or nearly empty pack". The grid gate is what keeps
-         dark text on boxes out — same defense as everywhere else. */
+         shape (fill 0.35, aspect 4.0), try both hat directions, and demand
+         the full 2-D grid gate. A DARK blob is a hole by construction; a
+         BRIGHT blob might be an intact pill, so the bright direction must
+         additionally prove every cell is a hole (disc darker than ring) —
+         a full sheet reported as "all taken" would be the worst possible
+         failure in a medicine app. */
       const minDim = Math.min(gray.rows, gray.cols);
       /* weld ladder: 0 = raw shards, then growing CLOSE kernels; a kernel that
          welds a cell's shards without bridging the inter-cell gap exists at
@@ -814,7 +816,11 @@ function countPills(srcRgba, isRectified) {
           countPills._rescue.push({ inv, cs: closeSize, raw: torn.length, fam: tornFam ? tornFam.length : 0,
             grid: tornFam ? gridScore(tornFam) : null });
           if (tornFam && gridOK(tornFam)) {
-            for (const c of tornFam) { c.empty = true; c.srcDark = true; }
+            if (!inv && !tornFam.every(c => {
+              const ev = cellRingEvidence(gray, c.cx, c.cy, c.r);
+              return ev && ev.disc <= ev.ring - 10;
+            })) continue; // bright blobs without hole proof: abstain, never verdict
+            for (const c of tornFam) { c.empty = true; c.srcDark = inv; }
             return { total: tornFam.length, full: 0, empty: tornFam.length, unknown: 0,
                      cells: tornFam, estimated: true, emptyPack: true };
           }
@@ -847,7 +853,11 @@ function countPills(srcRgba, isRectified) {
                    block on a box passed it) — a destroyed crumpled sheet is the
                    one case where abstaining IS the right product answer. */
                 if (tornFam && gridOK(tornFam)) {
-                  for (const c of tornFam) { c.empty = true; c.srcDark = true; c.cx += roiRect.x; c.cy += roiRect.y; }
+                  if (!inv && !tornFam.every(c => {
+                    const ev = cellRingEvidence(zoom, c.cx, c.cy, c.r); // zoom-local coords
+                    return ev && ev.disc <= ev.ring - 10;
+                  })) continue; // bright blobs without hole proof: abstain, never verdict
+                  for (const c of tornFam) { c.empty = true; c.srcDark = inv; c.cx += roiRect.x; c.cy += roiRect.y; }
                   return { total: tornFam.length, full: 0, empty: tornFam.length, unknown: 0,
                            cells: tornFam, estimated: true, emptyPack: true };
                 }

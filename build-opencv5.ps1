@@ -62,10 +62,11 @@ function RunTool($file, $argList, $dir, $tag) {
   Get-Content $err -ErrorAction SilentlyContinue | Out-File $log -Append -Encoding utf8
   return $p.ExitCode
 }
-Step "emsdk install latest (downloads ~1GB toolchain, be patient)"
-if ((RunTool "$work\emsdk\emsdk.bat" @("install", "latest") "$work\emsdk" "emsdk-install") -ne 0) { Step "emsdk install failed"; exit 1 }
-Step "emsdk activate latest"
-if ((RunTool "$work\emsdk\emsdk.bat" @("activate", "latest") "$work\emsdk" "emsdk-activate") -ne 0) { Step "emsdk activate failed"; exit 1 }
+# PINNED: the shipped binary was built with emscripten 6.0.6 — "latest" would drift
+Step "emsdk install 6.0.6 (pinned; downloads ~1GB toolchain, be patient)"
+if ((RunTool "$work\emsdk\emsdk.bat" @("install", "6.0.6") "$work\emsdk" "emsdk-install") -ne 0) { Step "emsdk install failed"; exit 1 }
+Step "emsdk activate 6.0.6"
+if ((RunTool "$work\emsdk\emsdk.bat" @("activate", "6.0.6") "$work\emsdk" "emsdk-activate") -ne 0) { Step "emsdk activate failed"; exit 1 }
 
 # pick up the env emsdk_env.bat would set
 $env:EMSDK = "$work\emsdk"
@@ -81,8 +82,12 @@ if ((Test-Path "$work\opencv") -and -not (Test-Path "$work\opencv\platforms\js\b
   Remove-Item -Recurse -Force "$work\opencv"
 }
 if (-not (Test-Path "$work\opencv")) {
-  Step "cloning opencv 5.x (depth 1)"
-  if ((RunTool "git" @("clone", "--depth", "1", "--branch", "5.x", "https://github.com/opencv/opencv.git") $work "opencv-clone") -ne 0) { Step "opencv clone failed"; exit 1 }
+  # PINNED: the shipped opencv.js was built from 5.x commit 96fcd0c (2026-08-15).
+  # A depth-1 branch clone would drift as 5.x moves; fetch that exact commit so
+  # the binary is reproducible byte-for-byte in spirit (same source tree).
+  Step "cloning opencv 5.x @ 96fcd0c (pinned)"
+  if ((RunTool "git" @("clone", "--filter=blob:none", "--branch", "5.x", "https://github.com/opencv/opencv.git") $work "opencv-clone") -ne 0) { Step "opencv clone failed"; exit 1 }
+  if ((RunTool "git" @("checkout", "96fcd0cdbe1b7de0dc52152eeb30d9e74234ca05") "$work\opencv" "opencv-pin") -ne 0) { Step "opencv pin checkout failed"; exit 1 }
 }
 
 # ---- build (threads OFF by default; default whitelist = full standard API) ----
