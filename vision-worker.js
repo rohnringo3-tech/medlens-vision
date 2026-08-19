@@ -522,13 +522,51 @@ function latticeComplete(cells, gray) {
   if (!ok) return { ok: false, implied: [], rows: rows.length, cols: cols.length, occupancy };
   /* implied = grid positions with no detected cell — rotated back to image space */
   const icos = Math.cos(ang), isin = Math.sin(ang);
+  const toImage = (cx, ry) => ({ ox: cx * icos - ry * isin, oy: cx * isin + ry * icos });
+  const inBounds = (ox, oy) => ox >= tol && oy >= tol && ox <= gray.cols - tol && oy <= gray.rows - tol;
   const implied = [];
   for (const ry of rows) for (const cx of cols) {
     if (rot.some(p => Math.hypot(p.x - cx, p.y - ry) < tol * 1.2)) continue;
-    const ox = cx * icos - ry * isin, oy = cx * isin + ry * icos;
-    if (ox < tol || oy < tol || ox > gray.cols - tol || oy > gray.rows - tol) continue;
+    const { ox, oy } = toImage(cx, ry);
+    if (!inBounds(ox, oy)) continue;
     implied.push({ cx: ox, cy: oy, r: tol, major: tol * 2, minor: tol * 2, angle: 0,
                    area: Math.PI * tol * tol, recovered: true });
+  }
+  /* EDGE extension: a fully-used row/column at the sheet's edge leaves no
+     interior gap for pitch repair to see. Probe one pitch beyond each edge,
+     but count a position ONLY on positive pixel evidence of a torn hole
+     (inner disc clearly darker than its ring) — a plain sheet margin adds
+     nothing. This recovers pressed-out edge columns without fabricating. */
+  const gapMed = (centers) => {
+    if (centers.length < 2) return null;
+    const gaps = [];
+    for (let i = 1; i < centers.length; i++) gaps.push(centers[i] - centers[i - 1]);
+    gaps.sort((a, b) => a - b);
+    return gaps[Math.floor(gaps.length / 2)];
+  };
+  const pitchX = gapMed(cols), pitchY = gapMed(rows);
+  const edgeCandidates = [];
+  if (pitchX) for (const ry of rows) {
+    edgeCandidates.push({ cx: cols[0] - pitchX, ry });
+    edgeCandidates.push({ cx: cols[cols.length - 1] + pitchX, ry });
+  }
+  if (pitchY) for (const cx of cols) {
+    edgeCandidates.push({ cx, ry: rows[0] - pitchY });
+    edgeCandidates.push({ cx, ry: rows[rows.length - 1] + pitchY });
+  }
+  let edgeAdded = 0;
+  for (const cand of edgeCandidates) {
+    if (edgeAdded >= 4) break;
+    const { ox, oy } = toImage(cand.cx, cand.ry);
+    if (!inBounds(ox, oy)) continue;
+    if (rot.some(p => Math.hypot(p.x - cand.cx, p.y - cand.ry) < tol * 1.2)) continue;
+    const ev = cellRingEvidence(gray, ox, oy, tol);
+    if (ev && ev.disc <= ev.ring - 10) { // positive evidence of a torn hole
+
+      implied.push({ cx: ox, cy: oy, r: tol, major: tol * 2, minor: tol * 2, angle: 0,
+                     area: Math.PI * tol * tol, recovered: true, edge: true });
+      edgeAdded++;
+    }
   }
   return { ok: true, implied: implied.length <= cells.length ? implied : [],
            rows: rows.length, cols: cols.length, occupancy };
@@ -677,9 +715,12 @@ function countPills(srcRgba, isRectified) {
     if (!viable.length) return null;
     viable.sort((a, b) => b.length - a.length);
     let cells = viable[0];
-    /* recovery: lattice-rescued families use their pitch-repaired implied
-       positions; primary-gate families keep the proven legacy recover */
-    const recovered = (cells._lattice && cells._lattice.implied) ? cells._lattice.implied : gridRecover(cells, gray);
+    /* recovery: every accepted family gets lattice recovery (pitch repair +
+       evidence-gated edge extension); the legacy recover remains the fallback
+       for families whose lattice analysis declines */
+    let lat = cells._lattice;
+    if (!lat) { const L = latticeComplete(cells, gray); if (L.ok) lat = L; }
+    const recovered = lat ? lat.implied : gridRecover(cells, gray);
     cells = cells.concat(recovered);
     if (cells.length > 30) return null;
     /* Classification, three tiers of evidence:
