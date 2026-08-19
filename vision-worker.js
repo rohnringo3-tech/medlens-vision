@@ -215,7 +215,8 @@ function largestGapThreshold(values) {
 }
 
 /* ---- detector v2: shape-agnostic contour pass (round, capsule, oblong) ---- */
-function detectCellsByContour(gray, inverted, bias, kernelDiv = 3, openSize = 5) {
+function detectCellsByContour(gray, inverted, bias, kernelDiv = 3, openSize = 5, gates = {}) {
+  const maxAspect = gates.maxAspect || 3.2, minFill = gates.minFill || 0.6;
   const bin = new cv.Mat(), kernel = cv.getStructuringElement(cv.MORPH_ELLIPSE, new cv.Size(openSize, openSize));
   const diff = new cv.Mat();
   const contours = new cv.MatVector(), hier = new cv.Mat();
@@ -266,8 +267,8 @@ function detectCellsByContour(gray, inverted, bias, kernelDiv = 3, openSize = 5)
         if (area < frameArea * 0.002 || area > frameArea * 0.15) { rec.x = "area"; continue; }
         if (!w || !h) { rec.x = "dim"; continue; }
         const major = Math.max(w, h), minor = Math.min(w, h);
-        if (major / minor > 3.2) { rec.x = "aspect"; continue; }
-        if (area / (w * h) < 0.6) { rec.x = "fill"; continue; }
+        if (major / minor > maxAspect) { rec.x = "aspect"; continue; }
+        if (area / (w * h) < minFill) { rec.x = "fill"; continue; }
         rec.x = "ok";
         cells.push({ cx: rr.center.x, cy: rr.center.y, r: (major + minor) / 4,
                      major, minor, angle: rr.angle, area });
@@ -712,7 +713,22 @@ function countPills(srcRgba, isRectified) {
       if (bigBright && gridOK(bigBright)) viable.push(bigBright);
       if (bigDark && gridOK(bigDark)) viable.push(bigDark);
     }
-    if (!viable.length) return null;
+    if (!viable.length) {
+      /* ALL-EMPTY-PACK rescue: a finished sheet is nothing but crumpled torn
+         cells — irregular blobs that fail the normal fill/aspect gates. Relax
+         shape (fill 0.35, aspect 4.0) for the DARK pass only and demand the
+         full 2-D grid gate; every cell found this way IS a hole, so the
+         verdict is "empty or nearly empty pack". The grid gate is what keeps
+         dark text on boxes out — same defense as everywhere else. */
+      const torn = detectCellsByContour(gray, true, 8, 3, 5, { maxAspect: 4.0, minFill: 0.35 });
+      const tornFam = gateUniform(torn);
+      if (tornFam && gridOK(tornFam)) {
+        for (const c of tornFam) { c.empty = true; c.srcDark = true; }
+        return { total: tornFam.length, full: 0, empty: tornFam.length, unknown: 0,
+                 cells: tornFam, estimated: true, emptyPack: true };
+      }
+      return null;
+    }
     viable.sort((a, b) => b.length - a.length);
     let cells = viable[0];
     /* recovery: every accepted family gets lattice recovery (pitch repair +
