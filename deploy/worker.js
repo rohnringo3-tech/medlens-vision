@@ -15,7 +15,13 @@
  * Key vault:                     npx wrangler secret put GEMINI_KEY
  */
 
-const GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
+/* Primary model first; when Google returns 503 UNAVAILABLE (model overload —
+   observed live 2026-08-20) or 429, fail over down the chain so a judge's
+   scan survives a demand spike instead of surfacing "AI is busy". */
+/* fallbacks use Google's -latest ALIASES, which track the current model and
+   can never be retired — verified against this key's /models listing */
+const GEMINI_MODELS = ["gemini-2.5-flash", "gemini-flash-latest", "gemini-flash-lite-latest", "gemini-pro-latest"];
+const geminiUrl = (m) => `https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent`;
 const MAX_BODY_BYTES = 3_000_000;   // downscaled scans are ~300KB; anything huge is abuse
 const LIMIT_PER_HOUR = 30;          // per IP, soft (in-memory per isolate)
 const MAX_OUTPUT_TOKENS = 2048;     // server-clamped: the app's JSON answers are far smaller
@@ -238,11 +244,26 @@ export default {
         return json({ error: { code: 429, message: "Rate limit — try again in an hour" } }, 429);
       }
 
-      const upstream = await fetch(GEMINI_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "x-goog-api-key": env.GEMINI_KEY },
-        body: JSON.stringify(built.gemini),
-      });
+      let upstream = null, firstOverload = null;
+      for (const model of GEMINI_MODELS) {
+        upstream = await fetch(geminiUrl(model), {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "x-goog-api-key": env.GEMINI_KEY },
+          body: JSON.stringify(built.gemini),
+        });
+        // fail over on overload (503/429) and on retired models (404) — a
+        // model Google sunsets mid-competition must never surface to a judge
+        if (upstream.status !== 503 && upstream.status !== 429 && upstream.status !== 404) break;
+        if (!firstOverload && upstream.status !== 404) {
+          firstOverload = new Response(await upstream.clone().arrayBuffer(),
+            { status: upstream.status, headers: { "Content-Type": "application/json" } });
+        }
+      }
+      /* if the whole chain failed, report the honest overload (503/429), never
+         a confusing retired-model 404 from the tail of the list */
+      if ((upstream.status === 404 || upstream.status === 503 || upstream.status === 429) && firstOverload) {
+        return firstOverload;
+      }
       // pass Gemini's response through untouched so the app's error handling works
       return new Response(await upstream.arrayBuffer(), {
         status: upstream.status,
