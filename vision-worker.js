@@ -184,20 +184,28 @@ function cellRingEvidence(gray, cx, cy, r) {
   const rIn = Math.max(2, r * 0.55), r0 = r * 1.15, r1 = r * 1.4;
   const x0 = Math.max(0, Math.floor(cx - r1)), x1 = Math.min(W - 1, Math.ceil(cx + r1));
   const y0 = Math.max(0, Math.floor(cy - r1)), y1 = Math.min(H - 1, Math.ceil(cy + r1));
-  let dSum = 0, dN = 0;
+  let dSum = 0, dSq = 0, dN = 0;
   const ringVals = [];
   for (let y = y0; y <= y1; y += 2) {
     for (let x = x0; x <= x1; x += 2) {
       const v = d[y * W + x];
       if (v >= 245) continue; // specular highlight — evidence of nothing
       const dist = Math.hypot(x - cx, y - cy);
-      if (dist <= rIn) { dSum += v; dN++; }
+      if (dist <= rIn) { dSum += v; dSq += v * v; dN++; }
       else if (dist >= r0 && dist <= r1) ringVals.push(v);
     }
   }
   if (dN < 6 || ringVals.length < 6) return null;
   ringVals.sort((a, b) => a - b);
-  return { disc: dSum / dN, ring: ringVals[Math.floor(ringVals.length / 2)] };
+  const discMean = dSum / dN;
+  /* discVar/ringVar: torn crumpled foil is ROUGH (high variance), bare table
+     and flat background are SMOOTH — the texture channel that separates a
+     bright torn cell from empty space where the dark-hole rule cannot */
+  let rSum = 0; for (const v of ringVals) rSum += v;
+  const rMean = rSum / ringVals.length;
+  let rVar = 0; for (const v of ringVals) rVar += (v - rMean) * (v - rMean);
+  return { disc: discMean, ring: ringVals[Math.floor(ringVals.length / 2)],
+           discVar: dSq / dN - discMean * discMean, ringVar: rVar / ringVals.length };
 }
 
 function largestGapThreshold(values) {
@@ -609,9 +617,13 @@ function latticeComplete(cells, gray) {
   }
   /* EDGE extension: a fully-used row/column at the sheet's edge leaves no
      interior gap for pitch repair to see. Probe one pitch beyond each edge,
-     but count a position ONLY on positive pixel evidence of a torn hole
-     (inner disc clearly darker than its ring) — a plain sheet margin adds
-     nothing. This recovers pressed-out edge columns without fabricating. */
+     but count a position ONLY on positive pixel evidence that a torn cell is
+     there. Two accepted forms of evidence:
+       - a DARK HOLE: inner disc clearly darker than its ring; or
+       - BRIGHT CRUMPLE: torn foil is ROUGH — disc variance far above the
+         ring's AND above an absolute floor, with the disc's brightness also
+         deviating from the ring. A bare table or plain sheet margin is
+         smooth and passes neither test, so nothing is fabricated. */
   const gapMed = (centers) => {
     if (centers.length < 2) return null;
     const gaps = [];
@@ -636,8 +648,10 @@ function latticeComplete(cells, gray) {
     if (!inBounds(ox, oy)) continue;
     if (rot.some(p => Math.hypot(p.x - cand.cx, p.y - cand.ry) < tol * 1.2)) continue;
     const ev = cellRingEvidence(gray, ox, oy, tol);
-    if (ev && ev.disc <= ev.ring - 10) { // positive evidence of a torn hole
-
+    const darkHole = ev && ev.disc <= ev.ring - 10;
+    const brightCrumple = ev && ev.discVar >= Math.max(ev.ringVar * 2.5, 250)
+                             && Math.abs(ev.disc - ev.ring) >= 8;
+    if (darkHole || brightCrumple) { // positive evidence of a torn cell
       implied.push({ cx: ox, cy: oy, r: tol, major: tol * 2, minor: tol * 2, angle: 0,
                      area: Math.PI * tol * tol, recovered: true, edge: true });
       edgeAdded++;
@@ -963,8 +977,12 @@ function countPills(srcRgba, isRectified) {
           colorPill = dSat > 0.12;
           colorEmpty = dV < -30 || (colorDist < 18 && dSat < 0.08);
         }
+        const crumple = ev && ev.discVar >= Math.max(ev.ringVar * 2.5, 250)
+                           && Math.abs(ev.disc - ev.ring) >= 8;
         if (ev && ev.disc <= ev.ring - 10) { c.empty = true; }
         else if (colorEmpty && !colorPill) { c.empty = true; }
+        else if (c.edge) { c.empty = true; } // edge cells exist ONLY because evidence admitted them
+        else if (crumple && !colorPill) { c.empty = true; } // rough torn foil, and not pill-colored
         else { c.unknown = true; c.empty = false; if ((ev && ev.disc >= ev.ring + 14) || colorPill) c.likelyPill = true; }
       } else if (c.unknown) c.empty = false; // counted, never classified
     }

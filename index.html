@@ -1923,10 +1923,15 @@ function renderResult(med, fda, ix, vision) {
   /* ---- the vision card: show the measurements, in plain words ---- */
   /* spoken abstention: the engine RAN but either found no countable sheet or
      refused to split intact from taken. Silence reads as a gap — say it, and
-     say how to get a countable photo. */
+     say how to get a countable photo. EXCEPT: powders, syrups, drops and other
+     uncountable forms have no pills — apologizing about counting there makes
+     the app sound broken when identification just succeeded. */
+  const uncountableForm = /powder|syrup|solution|suspension|drop|cream|gel|ointment|spray|inhal|sachet|liquid|lotion|injection/i
+    .test(String(med.form || "") + " " + String(med.name || ""));
   const visionAbstained = !!vision && (!vision.pills || vision.pills.full === null);
-  const abstainCard = visionAbstained ? `
-      <div class="conf-banner vis"><b>Could not count this sheet reliably.</b> The vision engine saw the photo but would not commit to a count. Retake flat on a plain surface, straight above, without glare — counting works best that way.</div>` : "";
+  const abstainCard = !visionAbstained ? "" : uncountableForm ? `
+      <div class="conf-banner vis"><b>Nothing to count here — and that is correct.</b> This is a ${esc(String(med.form || "product").toLowerCase())}, not a pill sheet, so the counting engine stays out of the way. Identification and the safety card above are what matter for this one.</div>` : `
+      <div class="conf-banner vis"><b>Could not count this sheet reliably.</b> The vision engine saw the photo but would not commit to a count. Retake flat on a plain surface, straight above, without glare — counting works best that way.</div>`;
   let visionSection = "";
   if (vision && (vision.deskewed || vision.pills)) {
     const pills = vision.pills;
