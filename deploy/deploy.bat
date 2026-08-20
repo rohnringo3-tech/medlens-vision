@@ -26,5 +26,11 @@ if errorlevel 1 (
   echo COPY FAILED: corpus manifest - aborting deploy
   exit /b 1
 )
+rem stamp the service worker cache version so every deploy forces an update cycle
+powershell -NoProfile -Command "$b = Get-Date -Format 'yyyyMMdd-HHmmss'; (Get-Content dist\sw.js -Raw) -replace '__BUILD__', $b | Set-Content dist\sw.js -Encoding UTF8; Write-Host ('sw cache stamped: medlens-vision-' + $b)"
+if errorlevel 1 (
+  echo SW STAMP FAILED - aborting deploy
+  exit /b 1
+)
 echo dist\ refreshed.
 call npx wrangler deploy

@@ -2,7 +2,10 @@
 // stalled wifi falls back to cache fast), cache-first for immutable Google Fonts.
 // opencv.js (16 MB wasm) is cached at install so the vision layer works offline;
 // allSettled means a slow first install still succeeds without it.
-const CACHE = "medlens-vision-v6";
+/* __BUILD__ is stamped by deploy.bat with a fresh id on EVERY deploy, so the
+   browser's byte-diff of sw.js always triggers the update cycle and stale app
+   shells cannot outlive a release. Local dev serves the literal token — fine. */
+const CACHE = "medlens-vision-__BUILD__";
 /* The 14MB engine lives in its OWN long-lived cache: bumping the app cache on
    a deploy must never make users on metered connections re-download opencv.js.
    Only bump CV_CACHE when the engine binary itself changes. */

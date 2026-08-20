@@ -208,6 +208,19 @@ function cellRingEvidence(gray, cx, cy, r) {
            discVar: dSq / dN - discMean * discMean, ringVar: rVar / ringVals.length };
 }
 
+/* Torn-cell crumple evidence, two forms (thresholds set from measured corpus
+   values, see eval-baseline-notes): RELATIVE — disc far rougher than its ring;
+   ABSOLUTE — disc roughness high outright (bare table ~50, plain sheet ~10-30,
+   torn foil 900+) with a clear brightness deviation, for cells whose ring is
+   itself contaminated by neighbouring crumple. */
+function crumpleEvidence(ev) {
+  if (!ev) return false;
+  const dev = Math.abs(ev.disc - ev.ring);
+  if (ev.discVar >= Math.max(ev.ringVar * 2.5, 250) && dev >= 8) return true;
+  if (ev.discVar >= 900 && dev >= 10) return true;
+  return false;
+}
+
 function largestGapThreshold(values) {
   if (values.length < 4) return null;
   const sorted = [...values].sort((a, b) => a - b);
@@ -642,6 +655,7 @@ function latticeComplete(cells, gray) {
     edgeCandidates.push({ cx, ry: rows[rows.length - 1] + pitchY });
   }
   let edgeAdded = 0;
+  latticeComplete._edge = [];
   for (const cand of edgeCandidates) {
     if (edgeAdded >= 4) break;
     const { ox, oy } = toImage(cand.cx, cand.ry);
@@ -649,8 +663,11 @@ function latticeComplete(cells, gray) {
     if (rot.some(p => Math.hypot(p.x - cand.cx, p.y - cand.ry) < tol * 1.2)) continue;
     const ev = cellRingEvidence(gray, ox, oy, tol);
     const darkHole = ev && ev.disc <= ev.ring - 10;
-    const brightCrumple = ev && ev.discVar >= Math.max(ev.ringVar * 2.5, 250)
-                             && Math.abs(ev.disc - ev.ring) >= 8;
+    const brightCrumple = crumpleEvidence(ev);
+    latticeComplete._edge.push(ev
+      ? { x: Math.round(ox), y: Math.round(oy), d: Math.round(ev.disc), r: Math.round(ev.ring),
+          dv: Math.round(ev.discVar), rv: Math.round(ev.ringVar), ok: !!(darkHole || brightCrumple) }
+      : { x: Math.round(ox), y: Math.round(oy), ev: null });
     if (darkHole || brightCrumple) { // positive evidence of a torn cell
       implied.push({ cx: ox, cy: oy, r: tol, major: tol * 2, minor: tol * 2, angle: 0,
                      area: Math.PI * tol * tol, recovered: true, edge: true });
@@ -709,6 +726,7 @@ function countPills(srcRgba, isRectified) {
   const gray = new cv.Mat();
   let satMat = null, brightHat = null, darkHat = null;
   countPills._rescue = null;
+  latticeComplete._edge = null; // telemetry must never leak between frames
   try {
     cv.cvtColor(srcRgba, gray, cv.COLOR_RGBA2GRAY);
     /* three candidate detections: contour bright, contour dark, Hough circles.
@@ -977,8 +995,7 @@ function countPills(srcRgba, isRectified) {
           colorPill = dSat > 0.12;
           colorEmpty = dV < -30 || (colorDist < 18 && dSat < 0.08);
         }
-        const crumple = ev && ev.discVar >= Math.max(ev.ringVar * 2.5, 250)
-                           && Math.abs(ev.disc - ev.ring) >= 8;
+        const crumple = crumpleEvidence(ev);
         if (ev && ev.disc <= ev.ring - 10) { c.empty = true; }
         else if (colorEmpty && !colorPill) { c.empty = true; }
         else if (c.edge) { c.empty = true; } // edge cells exist ONLY because evidence admitted them
@@ -1108,6 +1125,7 @@ function analyze(imageData) {
     }
     out.dbg = countPills._dbg || null;
     out.rescueDbg = countPills._rescue || null;
+    out.latDbg = latticeComplete._edge || null;
     if (out.pills) out.colorName = pillColorName(base, out.pills.cells);
     out.overlayImage = drawOverlay(base, base === src ? quad : null, out.pills);
     if (out.pills) out.pills.cells = out.pills.cells.map(c => ({ cx: c.cx, cy: c.cy, r: c.r, empty: !!c.empty, recovered: !!c.recovered, unknown: !!c.unknown }));
