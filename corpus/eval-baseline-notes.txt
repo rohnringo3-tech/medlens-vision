@@ -30,3 +30,16 @@ EDGE EXTENSION 2026-08-19 (v3.6): lattice recovery now runs on EVERY accepted fa
 EMPTY-PACK RESCUE GROUNDWORK 2026-08-19 (v3.7): relaxed torn-cell dark pass (fill 0.35, aspect 4.0, bias 8) behind the full grid gate, fires only when every normal path failed; verdict shape {emptyPack:true, full:0}. Does NOT yet catch photos 06/07 - crumpled torn cells fragment into sub-blobs that fail family uniformity; next step is fragment clustering (merge blobs within half a pitch) diagnosed via the __dumpBins ASCII art. No regressions: 10/10 synthetics, photo-05 exact, photo-03 8/8 intact, 0/9 box FPs.
 
 2026-08-20 crumple channel v2 (commit pending): cellRingEvidence grew disc/ring VARIANCE; torn-cell evidence = dark hole OR relative crumple (dv>=2.5x ring, >=250, dev>=8) OR absolute crumple (dv>=900, dev>=10 - ring contaminated by neighbouring tears). Thresholds MEASURED from edge telemetry: photo-03 bottom tear dv=1019 rv=984 dev=11; only lookalike (767,337) dv=2419 dev=7 stays rejected. RESULT: photo-03 EXACT 10/8/2 (was 8/8/0 this morning), exactCount 2/3, MAE 0.67 (was 1.33), all sacred gates hold (10/10 selftests, 0/9 boxes, photo-05 exact). Driven by HIS live scans of the real pink sheet. Also: sw.js cache now __BUILD__-stamped by deploy.bat every deploy.
+
+v3.9 2026-08-20 late — CRUMPLE EVIDENCE (edge extension + recovered classification):
+  crumpleEvidence(ev) = RELATIVE (discVar >= max(2.5*ringVar,250) && |disc-ring|>=8)
+                      OR ABSOLUTE (discVar >= 900 && |disc-ring| >= 10)
+  Measured on photo-03 edge candidates (telemetry lat[] in eval beacon):
+    top-right tear  d133 r96  dv2811 rv1048 -> relative rule  (accepted before)
+    bottom-right    d101 r90  dv1019 rv984  -> ABSOLUTE rule  (new; ring contaminated by neighbour crumple)
+    bare table      d~160 r~158 dv 50-58 rv ~230 -> rejected; plain sheet dv 2-30 -> rejected
+    only lookalike elsewhere: dv2419 rv867 but |d-r|=7 (<10) -> rejected (correctly)
+  RESULT: photo-03 10/8/2 EXACT (was 9/8/1); selftest 10/10; photo-05 exact; boxes 0/9;
+          corpus exactCount 2/3 (was 1/3), countMAE 0.67 (was 1.33), intactExact 2/3.
+  Also: swarmCrop/zoom rescue + weld ladder + hat cache (null photos 11.4s->8s), bright-direction
+  empty-pack verdicts need per-cell hole proof, SW cache auto-stamped per deploy, Gemini failover chain.
