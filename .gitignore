@@ -25,3 +25,7 @@ corpus/*.png
 !.dev.vars.example
 .env*
 !.env.example
+aws/lambda/*.zip
+aws/lambda/dist-*/node_modules/
+aws/harness/node_modules/
+aws/harness/dumps/
