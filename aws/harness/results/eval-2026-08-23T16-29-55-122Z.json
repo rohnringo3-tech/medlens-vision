@@ -1,0 +1,197 @@
+{
+  "summary": {
+    "photos": 15,
+    "blisterDetectRate": "n/a",
+    "exactCount": "n/a",
+    "countMAE": "n/a",
+    "intactExact": "0/0",
+    "falseBlisterOnBoxes": "0/0",
+    "crashes": 15,
+    "totalMs": 49807,
+    "node": "v24.18.0",
+    "arch": "x64",
+    "platform": "win32"
+  },
+  "rows": [
+    {
+      "file": "photo-01.jpg",
+      "kind": "blister",
+      "truth": {
+        "cells": null,
+        "intact": null,
+        "empty": null
+      },
+      "crashed": true,
+      "error": "ImageData is not defined",
+      "detectOK": false
+    },
+    {
+      "file": "photo-02.jpg",
+      "kind": "blister",
+      "truth": {
+        "cells": 10,
+        "intact": 8,
+        "empty": 2
+      },
+      "crashed": true,
+      "error": "ImageData is not defined",
+      "detectOK": false
+    },
+    {
+      "file": "photo-03.jpg",
+      "kind": "blister",
+      "truth": {
+        "cells": 10,
+        "intact": 8,
+        "empty": 2
+      },
+      "crashed": true,
+      "error": "ImageData is not defined",
+      "detectOK": false
+    },
+    {
+      "file": "photo-04.jpg",
+      "kind": "box",
+      "truth": {
+        "cells": null,
+        "intact": null,
+        "empty": null
+      },
+      "crashed": true,
+      "error": "ImageData is not defined",
+      "detectOK": false
+    },
+    {
+      "file": "photo-05.jpg",
+      "kind": "blister",
+      "truth": {
+        "cells": 10,
+        "intact": 6,
+        "empty": 4
+      },
+      "crashed": true,
+      "error": "ImageData is not defined",
+      "detectOK": false
+    },
+    {
+      "file": "photo-06.jpg",
+      "kind": "blister",
+      "truth": {
+        "cells": 8,
+        "intact": null,
+        "empty": null
+      },
+      "crashed": true,
+      "error": "ImageData is not defined",
+      "detectOK": false
+    },
+    {
+      "file": "photo-07.jpg",
+      "kind": "blister",
+      "truth": {
+        "cells": 8,
+        "intact": null,
+        "empty": null
+      },
+      "crashed": true,
+      "error": "ImageData is not defined",
+      "detectOK": false
+    },
+    {
+      "file": "photo-08.jpg",
+      "kind": "box",
+      "truth": {
+        "cells": null,
+        "intact": null,
+        "empty": null
+      },
+      "crashed": true,
+      "error": "ImageData is not defined",
+      "detectOK": false
+    },
+    {
+      "file": "photo-09.jpg",
+      "kind": "box",
+      "truth": {
+        "cells": null,
+        "intact": null,
+        "empty": null
+      },
+      "crashed": true,
+      "error": "ImageData is not defined",
+      "detectOK": false
+    },
+    {
+      "file": "photo-10.jpg",
+      "kind": "box",
+      "truth": {
+        "cells": null,
+        "intact": null,
+        "empty": null
+      },
+      "crashed": true,
+      "error": "ImageData is not defined",
+      "detectOK": false
+    },
+    {
+      "file": "photo-11.jpg",
+      "kind": "box",
+      "truth": {
+        "cells": null,
+        "intact": null,
+        "empty": null
+      },
+      "crashed": true,
+      "error": "ImageData is not defined",
+      "detectOK": false
+    },
+    {
+      "file": "photo-12.jpg",
+      "kind": "box",
+      "truth": {
+        "cells": null,
+        "intact": null,
+        "empty": null
+      },
+      "crashed": true,
+      "error": "ImageData is not defined",
+      "detectOK": false
+    },
+    {
+      "file": "photo-13.jpg",
+      "kind": "box",
+      "truth": {
+        "cells": null,
+        "intact": null,
+        "empty": null
+      },
+      "crashed": true,
+      "error": "ImageData is not defined",
+      "detectOK": false
+    },
+    {
+      "file": "photo-14.jpg",
+      "kind": "box",
+      "truth": {
+        "cells": null,
+        "intact": null,
+        "empty": null
+      },
+      "crashed": true,
+      "error": "ImageData is not defined",
+      "detectOK": false
+    },
+    {
+      "file": "photo-15.jpg",
+      "kind": "box",
+      "truth": {
+        "cells": null,
+        "intact": null,
+        "empty": null
+      },
+      "crashed": true,
+      "error": "ImageData is not defined",
+      "detectOK": false
+    }
+  ]
+}

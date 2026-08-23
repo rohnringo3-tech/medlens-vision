@@ -1,4 +1,4 @@
-﻿# MedLens Vision
+# MedLens Vision
 
 Point your phone at any medicine. It sees, counts, and explains.
 
@@ -12,9 +12,9 @@ Entry for the OpenCV AI Competition 2026, powered by AWS. Solo build by a 14-yea
 
 Photograph a medicine box, bottle or blister sheet:
 
-1. **SEE â€” OpenCV 5, on this device.** Finds the label and perspective-corrects it. Detects blister cells (round pills, capsules, oblongs), counts which pills are intact and which were already pressed out, and marks everything on your photo. Runs in a Web Worker: one to four seconds on clean sheet detections, up to eight to ten seconds when the full rescue ladder runs before an honest "no blister found" (the app works hardest right before saying no). Measured on the real-photo corpus at 1280 px input, Edge on Windows 11 â€” no internet needed for this step.
-2. **REASON â€” AI + official data.** Gemini reads the rectified label into a plain-language safety card; openFDA grounds the name; a deterministic 33-pair interaction table checks the new medicine against everything you saved â€” including international name traps (Panadol + Tylenol is the same drug twice).
-3. **ACT.** Dose reminders, a refill forecast from the measured pill count, clear "see a doctor now" guidance â€” and a voice Q&A box on every scanned medicine: ask by typing or speaking (English, Swahili and five more languages) and the answer is spoken back. It is scoped to the scanned medicine only and hard-refuses to recommend medicines or diagnose; anything involving children, pregnancy or "what should I take" routes to a pharmacist.
+1. **SEE — OpenCV 5, on this device.** Finds the label and perspective-corrects it. Detects blister cells (round pills, capsules, oblongs), counts which pills are intact and which were already pressed out, and marks everything on your photo. Runs in a Web Worker: one to four seconds on clean sheet detections, up to eight to ten seconds when the full rescue ladder runs before an honest "no blister found" (the app works hardest right before saying no). Measured on the real-photo corpus at 1280 px input, Edge on Windows 11 — no internet needed for this step.
+2. **REASON — AI + official data.** Gemini reads the rectified label into a plain-language safety card; openFDA grounds the name; a deterministic 33-pair interaction table checks the new medicine against everything you saved — including international name traps (Panadol + Tylenol is the same drug twice).
+3. **ACT.** Dose reminders, a refill forecast from the measured pill count, clear "see a doctor now" guidance — and a voice Q&A box on every scanned medicine: ask by typing or speaking (English, Swahili and five more languages) and the answer is spoken back. It is scoped to the scanned medicine only and hard-refuses to recommend medicines or diagnose; anything involving children, pregnancy or "what should I take" routes to a pharmacist.
 
 The philosophy throughout: **AI reads and explains, deterministic code decides.** Every safety-relevant number on screen comes from auditable JavaScript, not a language model.
 
@@ -22,15 +22,15 @@ The philosophy throughout: **AI reads and explains, deterministic code decides.*
 
 All in `vision-worker.js`, all on-device:
 
-- **Label detection and rectification** â€” auto-Canny (thresholds from the image median), contour analysis, largest convex quadrilateral, `warpPerspective`. The AI reads a flat, upright label instead of a crooked photo.
-- **Rectify-then-count** â€” when the sheet quad is found, measurement happens in rectified space, so angled shots do not turn circles into missed ellipses.
-- **Shape-agnostic cell detection** â€” morphological top-hat / black-hat (structuring element larger than a pill) isolates pill-scale blobs and cancels sheet borders and lighting gradients; Otsu on the top-hat separates pills from embossed-seam leak; `minAreaRect` gates by aspect ratio (1.0-3.2) so capsules and oblongs pass. HoughCircles runs as an independent cross-check vote.
-- **Intact vs pressed-out** â€” per-cell Laplacian texture variance, split by largest-gap clustering. Cells whose pill was torn out completely are recovered from the blister grid pattern (only positions whose row AND column already exist) and then judged on pixel evidence: a recovered position counts as used only when its inner disc is clearly darker than the surrounding sheet ring (a torn hole); anything else is reported as unknown, never as taken.
-- **Honesty by design** â€” glare-heavy cells (specular highlights over 30 percent of the cell) are counted but never classified; when the texture split finds no real evidence, the app says "could not tell" instead of guessing. In a medicine app, a confident wrong answer is worse than an honest abstention.
+- **Label detection and rectification** — auto-Canny (thresholds from the image median), contour analysis, largest convex quadrilateral, `warpPerspective`. The AI reads a flat, upright label instead of a crooked photo.
+- **Rectify-then-count** — when the sheet quad is found, measurement happens in rectified space, so angled shots do not turn circles into missed ellipses.
+- **Shape-agnostic cell detection** — morphological top-hat / black-hat (structuring element larger than a pill) isolates pill-scale blobs and cancels sheet borders and lighting gradients; Otsu on the top-hat separates pills from embossed-seam leak; `minAreaRect` gates by aspect ratio (1.0-3.2) so capsules and oblongs pass. HoughCircles runs as an independent cross-check vote.
+- **Intact vs pressed-out** — per-cell Laplacian texture variance, split by largest-gap clustering. Cells whose pill was torn out completely are recovered from the blister grid pattern (only positions whose row AND column already exist) and then judged on pixel evidence: a recovered position counts as used only when its inner disc is clearly darker than the surrounding sheet ring (a torn hole); anything else is reported as unknown, never as taken.
+- **Honesty by design** — glare-heavy cells (specular highlights over 30 percent of the cell) are counted but never classified; when the texture split finds no real evidence, the app says "could not tell" instead of guessing. In a medicine app, a confident wrong answer is worse than an honest abstention.
 
 ## The OpenCV 5 story
 
-The official `docs.opencv.org/5.x/opencv.js` build uses pthreads and hard-hangs browsers that are not cross-origin isolated. This repo therefore ships a **self-compiled single-threaded OpenCV 5 WASM build** (14 MB), built from the `5.x` branch with `build-opencv5.ps1` â€” the script records every fix needed on Windows: the harfbuzz warnings-as-errors escape hatch, the unquoted `--post-js` link flag, and driving ninja directly because `build_js.py` ends by calling `make`. Dependencies are pinned for reproducibility: OpenCV `5.x` commit `96fcd0c` (2026-08-15) and emscripten `6.0.6`.
+The official `docs.opencv.org/5.x/opencv.js` build uses pthreads and hard-hangs browsers that are not cross-origin isolated. This repo therefore ships a **self-compiled single-threaded OpenCV 5 WASM build** (14 MB), built from the `5.x` branch with `build-opencv5.ps1` — the script records every fix needed on Windows: the harfbuzz warnings-as-errors escape hatch, the unquoted `--post-js` link flag, and driving ninja directly because `build_js.py` ends by calling `make`. Dependencies are pinned for reproducibility: OpenCV `5.x` commit `96fcd0c` (2026-08-15) and emscripten `6.0.6`.
 
 Reproduce it:
 
@@ -42,22 +42,23 @@ powershell -ExecutionPolicy Bypass -File build-opencv5.ps1
 
 `/?selftest=1` runs 10 assertions against synthetic sheets with known ground truth (skewed labels, a 45-degree diamond, round-pill and capsule blisters, an all-intact pack that must NOT report empties).
 
-`/?eval=1` scores the pipeline against a hand-labeled corpus of 15 real photos from my family's medicine drawer (`corpus/` in this repo â€” blister sheets front and back, boxes, a sachet, a bottle, tilts, blur, dark surfaces). Current numbers, failures included (measured 2026-08-20, Edge on Windows 11): blister detection 4/6, exact cell count on 2 of 3 scoreable sheets (10 cells, 6 intact, 4 taken on the salmon sheet; 10 cells, 8 intact, 2 taken on the pink sheet â€” both exact), count MAE 0.67, intact-count exact on 2 of 3, and 0/9 false blisters on boxes and bottles after the grid gate. Destroyed crumpled sheets (two in the corpus) are deliberate abstentions: a crumple-tolerant detector was tried and rejected because it re-opened false positives on printed text. One honest caveat: the browser's own image downscaling feeds the pipeline, so borderline photos can score slightly differently on other devices â€” the eval page always shows YOUR device's real result. Small numbers, published anyway â€” the corpus grows weekly and the page re-scores itself in your browser: https://medlens-vision.rohnringo3.workers.dev/?eval=1
+`/?eval=1` scores the pipeline against a hand-labeled corpus of 15 real photos from my family's medicine drawer (`corpus/` in this repo — blister sheets front and back, boxes, a sachet, a bottle, tilts, blur, dark surfaces). Current numbers, failures included (measured 2026-08-20, Edge on Windows 11): blister detection 4/6, exact cell count on 2 of 3 scoreable sheets (10 cells, 6 intact, 4 taken on the salmon sheet; 10 cells, 8 intact, 2 taken on the pink sheet — both exact), count MAE 0.67, intact-count exact on 2 of 3, and 0/9 false blisters on boxes and bottles after the grid gate. Destroyed crumpled sheets (two in the corpus) are deliberate abstentions: a crumple-tolerant detector was tried and rejected because it re-opened false positives on printed text. One honest caveat: the browser's own image downscaling feeds the pipeline, so borderline photos can score slightly differently on other devices — the eval page always shows YOUR device's real result. Small numbers, published anyway — the corpus grows weekly and the page re-scores itself in your browser: https://medlens-vision.rohnringo3.workers.dev/?eval=1
 
 ## Architecture
 
 - Single-file PWA (`index.html`), zero frameworks. The app shell and the vision pipeline work offline after first load; the AI explanation and openFDA check need internet.
-- `vision-worker.js` â€” OpenCV pipeline in a Web Worker, transferable ImageData in and out, every Mat freed in `finally`.
-- Cloudflare Worker (`deploy/worker.js`) serves the app and proxies Gemini with a server-held key and per-IP rate limit â€” zero setup for visitors. The Worker owns all three prompts (scan / interactions / ask); the client sends only minimal typed payloads, so the endpoint cannot be repurposed as a general LLM on the owner's key.
+- `vision-worker.js` — OpenCV pipeline in a Web Worker, transferable ImageData in and out, every Mat freed in `finally`.
+- Cloudflare Worker (`deploy/worker.js`) serves the app and proxies Gemini with a server-held key and per-IP rate limit — zero setup for visitors. The Worker owns all three prompts (scan / interactions / ask); the client sends only minimal typed payloads, so the endpoint cannot be repurposed as a general LLM on the owner's key.
 - Voice in and out via the Web Speech API (`SpeechRecognition` + `speechSynthesis`), language-matched to the UI language; the mic button hides itself on browsers without a recognizer.
-- AWS evaluation backbone (S3 corpus + Lambda eval harness) is the next milestone, pending account setup.
+- **AWS evaluation backbone (live)** — the corpus and its ground-truth manifest live in S3; two Lambda functions (`aws/lambda/`, arm64/Graviton and x86_64, Node.js 24, 2048 MB) run the EXACT same pipeline headlessly — `vision-worker.js` plus the self-compiled OpenCV 5 WASM under Node, no browser — score every photo, and write the full result set back to S3. First production runs (2026-08-23, eu-north-1, 15-photo corpus): identical summaries on both architectures (0 crashes, 0/9 false blisters). Cold start: 104.7 s arm64 vs 90.4 s x86_64 (the one-time WASM compile favors x86). Warm runs: 72.2 s arm64 vs 84.3 s x86_64 — Graviton 14% faster, and at Lambda's ~20% lower arm64 rate about a third cheaper per evaluation. The harness (`aws/harness/eval.js`) also runs locally: `node aws/harness/eval.js`.
+- The cloud harness already earned its keep: it exposed that one flagship photo's detection rode on HoughCircles luck — near-identical decoder pixels flip it. Browser-parity decoding (libvips/sharp) keeps every negative at 0/9 in the cloud; the detection fragility is now a tracked, honestly-published work item.
 
 ## Honest limitations
 
 - Pill counting is an estimate from one photo; the pack is the truth.
-- The interaction table covers 33 classic dangerous pairs â€” a pharmacist checks thousands. The app says exactly that on every all-clear.
+- The interaction table covers 33 classic dangerous pairs — a pharmacist checks thousands. The app says exactly that on every all-clear.
 - Not medical advice. The app repeats this on every result and abstains when unsure.
-- Chosen non-scope: expiry-date OCR on crimped foil, counterfeit claims, tamper detection â€” features a phone camera cannot do responsibly today.
+- Chosen non-scope: expiry-date OCR on crimped foil, counterfeit claims, tamper detection — features a phone camera cannot do responsibly today.
 
 ## Run locally
 

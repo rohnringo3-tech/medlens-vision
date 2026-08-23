@@ -1,0 +1,262 @@
+{
+  "summary": {
+    "photos": 15,
+    "blisterDetectRate": "3/6",
+    "exactCount": "1/2",
+    "countMAE": "1.00",
+    "intactExact": "1/2",
+    "falseBlisterOnBoxes": "1/9",
+    "crashes": 0,
+    "totalMs": 40733,
+    "node": "v24.18.0",
+    "arch": "x64",
+    "platform": "win32"
+  },
+  "rows": [
+    {
+      "file": "photo-01.jpg",
+      "kind": "blister",
+      "truth": {
+        "cells": null,
+        "intact": null,
+        "empty": null
+      },
+      "got": {
+        "total": 10,
+        "full": 4,
+        "empty": 5,
+        "unknown": 1
+      },
+      "deskewed": false,
+      "ms": 2434,
+      "detectOK": true,
+      "countErr": null,
+      "intactOK": null
+    },
+    {
+      "file": "photo-02.jpg",
+      "kind": "blister",
+      "truth": {
+        "cells": 10,
+        "intact": 8,
+        "empty": 2
+      },
+      "got": {
+        "total": 8,
+        "full": 5,
+        "empty": 0,
+        "unknown": 3
+      },
+      "deskewed": false,
+      "ms": 1492,
+      "detectOK": true,
+      "countErr": 2,
+      "intactOK": false
+    },
+    {
+      "file": "photo-03.jpg",
+      "kind": "blister",
+      "truth": {
+        "cells": 10,
+        "intact": 8,
+        "empty": 2
+      },
+      "got": {
+        "total": 10,
+        "full": 8,
+        "empty": 2,
+        "unknown": 0
+      },
+      "deskewed": true,
+      "ms": 5190,
+      "detectOK": true,
+      "countErr": 0,
+      "intactOK": true
+    },
+    {
+      "file": "photo-04.jpg",
+      "kind": "box",
+      "truth": {
+        "cells": null,
+        "intact": null,
+        "empty": null
+      },
+      "got": null,
+      "deskewed": false,
+      "ms": 2287,
+      "detectOK": true,
+      "countErr": null,
+      "intactOK": null
+    },
+    {
+      "file": "photo-05.jpg",
+      "kind": "blister",
+      "truth": {
+        "cells": 10,
+        "intact": 6,
+        "empty": 4
+      },
+      "got": null,
+      "deskewed": false,
+      "ms": 2369,
+      "detectOK": false,
+      "countErr": null,
+      "intactOK": null
+    },
+    {
+      "file": "photo-06.jpg",
+      "kind": "blister",
+      "truth": {
+        "cells": 8,
+        "intact": null,
+        "empty": null
+      },
+      "got": null,
+      "deskewed": false,
+      "ms": 2460,
+      "detectOK": false,
+      "countErr": null,
+      "intactOK": null
+    },
+    {
+      "file": "photo-07.jpg",
+      "kind": "blister",
+      "truth": {
+        "cells": 8,
+        "intact": null,
+        "empty": null
+      },
+      "got": null,
+      "deskewed": false,
+      "ms": 2573,
+      "detectOK": false,
+      "countErr": null,
+      "intactOK": null
+    },
+    {
+      "file": "photo-08.jpg",
+      "kind": "box",
+      "truth": {
+        "cells": null,
+        "intact": null,
+        "empty": null
+      },
+      "got": null,
+      "deskewed": false,
+      "ms": 2349,
+      "detectOK": true,
+      "countErr": null,
+      "intactOK": null
+    },
+    {
+      "file": "photo-09.jpg",
+      "kind": "box",
+      "truth": {
+        "cells": null,
+        "intact": null,
+        "empty": null
+      },
+      "got": null,
+      "deskewed": false,
+      "ms": 2793,
+      "detectOK": true,
+      "countErr": null,
+      "intactOK": null
+    },
+    {
+      "file": "photo-10.jpg",
+      "kind": "box",
+      "truth": {
+        "cells": null,
+        "intact": null,
+        "empty": null
+      },
+      "got": null,
+      "deskewed": true,
+      "ms": 3125,
+      "detectOK": true,
+      "countErr": null,
+      "intactOK": null
+    },
+    {
+      "file": "photo-11.jpg",
+      "kind": "box",
+      "truth": {
+        "cells": null,
+        "intact": null,
+        "empty": null
+      },
+      "got": null,
+      "deskewed": false,
+      "ms": 2416,
+      "detectOK": true,
+      "countErr": null,
+      "intactOK": null
+    },
+    {
+      "file": "photo-12.jpg",
+      "kind": "box",
+      "truth": {
+        "cells": null,
+        "intact": null,
+        "empty": null
+      },
+      "got": {
+        "total": 6,
+        "full": 2,
+        "empty": 3,
+        "unknown": 1
+      },
+      "deskewed": false,
+      "ms": 1548,
+      "detectOK": false,
+      "countErr": null,
+      "intactOK": null
+    },
+    {
+      "file": "photo-13.jpg",
+      "kind": "box",
+      "truth": {
+        "cells": null,
+        "intact": null,
+        "empty": null
+      },
+      "got": null,
+      "deskewed": false,
+      "ms": 2636,
+      "detectOK": true,
+      "countErr": null,
+      "intactOK": null
+    },
+    {
+      "file": "photo-14.jpg",
+      "kind": "box",
+      "truth": {
+        "cells": null,
+        "intact": null,
+        "empty": null
+      },
+      "got": null,
+      "deskewed": false,
+      "ms": 3719,
+      "detectOK": true,
+      "countErr": null,
+      "intactOK": null
+    },
+    {
+      "file": "photo-15.jpg",
+      "kind": "box",
+      "truth": {
+        "cells": null,
+        "intact": null,
+        "empty": null
+      },
+      "got": null,
+      "deskewed": false,
+      "ms": 2956,
+      "detectOK": true,
+      "countErr": null,
+      "intactOK": null
+    }
+  ]
+}

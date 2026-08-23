@@ -2550,6 +2550,12 @@ async function runEval() {
       c.width = Math.round((img.naturalWidth || img.width) * scale);
       c.height = Math.round((img.naturalHeight || img.height) * scale);
       c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+      /* dev-only pixel dump for the headless harness: ?eval=1&dump=photo-05 */
+      const dumpName = new URLSearchParams(location.search).get("dump");
+      if (dumpName && isLocal && item.file.startsWith(dumpName)) {
+        const id = c.getContext("2d").getImageData(0, 0, c.width, c.height);
+        await fetch(`/dump-pixels/${encodeURIComponent(item.file)}.${c.width}x${c.height}`, { method: "POST", body: id.data }).catch(() => {});
+      }
       const v = await visionAnalyze(c);
       const p = v.pills;
       const row = {
