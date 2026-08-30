@@ -430,6 +430,23 @@ function detectCellsByHough(gray) {
   return cells;
 }
 
+/* Interior RGB variance of a cell disc — the solid-color pill-ness cue.
+   A pill is one colour; a text blob is strokes plus background. */
+function colorVarInDisc(srcRgba, cx, cy, r) {
+  const half = Math.max(3, Math.round(r * 0.5));
+  const x0 = Math.max(0, Math.round(cx - half)), y0 = Math.max(0, Math.round(cy - half));
+  const x1 = Math.min(srcRgba.cols, Math.round(cx + half)), y1 = Math.min(srcRgba.rows, Math.round(cy + half));
+  const d = srcRgba.data, W = srcRgba.cols;
+  let n = 0, sr = 0, sg = 0, sb = 0, srr = 0, sgg = 0, sbb = 0;
+  for (let y = y0; y < y1; y += 2) for (let x = x0; x < x1; x += 2) {
+    const i = (y * W + x) * 4;
+    const R = d[i], G = d[i + 1], B = d[i + 2];
+    sr += R; sg += G; sb += B; srr += R * R; sgg += G * G; sbb += B * B; n++;
+  }
+  if (!n) return 1e9;
+  return (srr / n - (sr / n) ** 2) + (sgg / n - (sg / n) ** 2) + (sbb / n - (sb / n) ** 2);
+}
+
 /* Mean color of a cell's inner disc, specular pixels excluded. */
 function cellColorStats(srcRgba, cx, cy, r) {
   const half = Math.max(3, Math.round(r * 0.55));
@@ -756,9 +773,59 @@ function countPills(srcRgba, isRectified) {
        pills 166 vs bottle text 86), but sheet context does — a saturated
        grid floating in a room scene is a logo, not medicine. */
     let satCells = [];
-    if (isRectified) {
+    {
+      /* With SHEET CONTEXT (label quad) the sat pass joins the normal flow.
+         WITHOUT it, a family is licensed only when it passes the strict grid
+         gate AND the solid-color pill-ness gate: a pill interior is one solid
+         colour (RGB variance 383-745 measured on the salmon sheet) while
+         printed text carries background between strokes (1057-4779 on the
+         bottle label, where interior sharpness failed to separate). 900 sits
+         in the measured gap with margin both ways. */
       satMat = saturationChannel(srcRgba);
-      satCells = detectCellsByContour(satMat, false, 15);
+      const rawSat = detectCellsByContour(satMat, false, 15);
+      if (isRectified) {
+        satCells = rawSat;
+      } else {
+        const fam = gateUniform(rawSat);
+        if (fam && gridOK(fam)) {
+          /* MEDIAN, not every: two adjacent pills can fuse into one blob whose
+             interior spans the gap (variance 1688 measured) — one merged cell
+             must not veto a family of solid singles (437-678) */
+          const vars = fam.map(c => colorVarInDisc(srcRgba, c.cx, c.cy, c.r)).sort((a, b) => a - b);
+          if (vars[Math.floor(vars.length / 2)] <= 900) {
+            /* deblend: two touching pills fuse into one oversized blob — split
+               it into two cells along its major axis so the lattice sees the
+               true grid (measured: fused r=54 vs single median r=36) */
+            const med = (a) => { const v = [...a].sort((x, y) => x - y); return v[Math.floor(v.length / 2)]; };
+            const rs = rawSat.map(c => c.r);
+            const medR = med(rs);
+            const singles = rawSat.filter(c => c.r <= medR * 1.35);
+            const medMajor = med(singles.map(c => c.major));
+            const medMinor = med(singles.map(c => c.minor));
+            const medAngle = med(singles.map(c => c.angle || 0)) * Math.PI / 180;
+            satCells = [];
+            for (const c of rawSat) {
+              /* oblong pills fuse across their SHORT side (measured: fused
+                 minor 95 vs single median minor 50) or, for round pills,
+                 along the long side — detect whichever dimension doubled and
+                 place two median-shaped pills either side of the fused center */
+              const minorDoubled = c.minor > medMinor * 1.6;
+              const majorDoubled = c.major > medMajor * 1.6;
+              if (singles.length >= 3 && (minorDoubled || majorDoubled)) {
+                const along = majorDoubled ? medAngle : medAngle + Math.PI / 2;
+                const dist = (majorDoubled ? c.major : c.minor) / 4;
+                const dx = Math.cos(along) * dist, dy = Math.sin(along) * dist;
+                const child = { r: (medMajor + medMinor) / 4, major: medMajor, minor: medMinor,
+                                angle: medAngle * 180 / Math.PI, area: medMajor * medMinor * 0.7, src: "sat" };
+                satCells.push({ ...child, cx: c.cx - dx, cy: c.cy - dy });
+                satCells.push({ ...child, cx: c.cx + dx, cy: c.cy + dy });
+              } else {
+                satCells.push(c);
+              }
+            }
+          }
+        }
+      }
     }
     for (const c of dark) c.srcDark = true; // a dark-pass cell is a hole/torn-foil candidate
     for (const c of bump) c.src = "bump";   // a blurred-dome cell — foil-back bump candidate
@@ -936,6 +1003,10 @@ function countPills(srcRgba, isRectified) {
     let colorResolved = 0;
     for (const c of detected) {
       if (c.unknown) continue;
+      /* a saturation-found cell IS a colored pill by construction — the pass
+         only fires on solid saturated blobs; never let the texture fallback
+         second-guess it into "taken" */
+      if (c.src === "sat") { c.empty = false; c.resolved = "sat"; continue; }
       c.sharp = cellSharpness(gray, c.cx, c.cy, c.r);
       const cs = ref ? cellColorStats(srcRgba, c.cx, c.cy, c.r) : null;
       if (cs && ref) {
@@ -1010,7 +1081,8 @@ function countPills(srcRgba, isRectified) {
     }
     const unknown = cells.filter(c => c.unknown).length;
     const recoveredEmpty = recovered.some(c => c.empty);
-    if (thr === null && !recoveredEmpty && !colorResolved) {
+    const satResolved = cells.some(c => c.resolved === "sat");
+    if (thr === null && !recoveredEmpty && !colorResolved && !satResolved) {
       /* no evidence either way — report the count honestly, say nothing more */
       for (const c of cells) c.empty = false;
       return { total: cells.length, full: null, empty: null, unknown, cells, estimated: true };
@@ -1162,4 +1234,6 @@ if (IS_WORKER) onmessage = (e) => {
 };
 
 /* Node / Lambda entry point (no-op inside a Web Worker) */
-if (typeof module !== "undefined" && module.exports) module.exports = { analyze };
+if (typeof module !== "undefined" && module.exports) module.exports = { analyze,
+  /* research-only internals for the Node harness — never used by the app */
+  _internals: { saturationChannel, detectCellsByContour, gateUniform, gridOK, cellColorStats, cellSharpness, cellRingEvidence, latticeComplete } };

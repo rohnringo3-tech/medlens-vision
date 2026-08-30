@@ -9,17 +9,16 @@ const path = require("path");
 
 const MAX_SIDE = 1280; // production vision input cap (index.html imageToImageData)
 
-/* Decode with libvips (libjpeg-turbo, fancy chroma upsampling, EXIF auto-
-   rotation) — the same decoder family browsers use, so the pixels entering
-   the pipeline match what the in-browser /?eval=1 page feeds it. jpeg-js was
-   tried first: its nearest-neighbour chroma upsampling shifted pill colours
-   enough to flip borderline photos. */
+/* Decode with libvips/sharp (libjpeg-turbo, fancy chroma upsampling) — the
+   decoder family browsers use; measured max 1 brightness level difference on
+   0.2% of samples vs Chrome. jpeg-js and mozjpeg-wasm were both tried and
+   both flipped borderline photos (false blisters on photos 11/12). */
 async function loadImageData(cv, file) {
   const sharp = require("sharp");
-  const img = sharp(file, { failOn: "none" }).rotate(); // .rotate() = apply EXIF orientation
+  const img = sharp(file, { failOn: "none" }).rotate(); // .rotate() applies EXIF orientation
   const meta = await img.metadata();
   let w = meta.width, h = meta.height;
-  if (meta.orientation >= 5) { const t = w; w = h; h = t; } // swapped by the rotation
+  if (meta.orientation >= 5) { const t = w; w = h; h = t; }
   const scale = Math.min(1, MAX_SIDE / Math.max(w, h));
   const tw = Math.round(w * scale), th = Math.round(h * scale);
   const { data, info } = await img
